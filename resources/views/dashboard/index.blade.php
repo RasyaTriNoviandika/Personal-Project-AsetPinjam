@@ -1,7 +1,41 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+{{-- Navbar / Hamburger Menu Mobile --}}
+<nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom shadow mb-3 d-lg-none">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><i class="fas fa-tachometer-alt me-1"></i>Dashboard</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mobileMenu"
+            aria-controls="mobileMenu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="mobileMenu">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item mb-2">
+                    <span class="nav-link">Total Barang: {{ $totalBarang }}</span>
+                </li>
+                <li class="nav-item mb-2">
+                    <span class="nav-link">Total Peminjam: {{ $totalPeminjam }}</span>
+                </li>
+                <li class="nav-item mb-2">
+                    <span class="nav-link">Peminjaman Aktif: {{ $totalPeminjamanAktif }}</span>
+                </li>
+                <li class="nav-item mb-2">
+                    <span class="nav-link">Pendapatan Bulan Ini: Rp {{ number_format($totalPendapatanBulanIni, 0, ',', '.') }}</span>
+                </li>
+                <li class="nav-item mt-2">
+                    <button class="btn btn-outline-secondary btn-sm w-100" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-1"></i>Refresh
+                    </button>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+{{-- Desktop Header --}}
+<div class="d-none d-lg-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
         <div class="btn-group me-2">
@@ -249,26 +283,14 @@ new Chart(ctx, {
     options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: {
-            legend: {
-                display: false
-            }
-        },
+        plugins: { legend: { display: false } },
         scales: {
-            x: {
-                grid: {
-                    display: false
-                }
-            },
-            y: {
+            x: { grid: { display: false } },
+            y: { 
                 beginAtZero: true,
-                grid: {
-                    borderDash: [3, 3]
-                },
+                grid: { borderDash: [3,3] },
                 ticks: {
-                    callback: function(value) {
-                        return 'Rp ' + value.toLocaleString('id-ID');
-                    }
+                    callback: function(value) { return 'Rp ' + value.toLocaleString('id-ID'); }
                 }
             }
         }

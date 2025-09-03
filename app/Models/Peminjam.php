@@ -1,6 +1,4 @@
 <?php
-// app/Models/Peminjam.php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,11 +8,17 @@ class Peminjam extends Model
 {
     use HasFactory;
 
-    protected $table = 'peminjam';
+    protected $table = 'peminjams';
+    
     protected $fillable = [
-        'kode_peminjam', 'nama_lengkap', 'email', 'no_telepon',
-        'alamat', 'jenis_identitas', 'nomor_identitas',
-        'foto_identitas', 'status'
+        'kode_peminjam', 
+        'nama_peminjam',  // sesuaikan dengan tabel
+        'email', 
+        'no_telepon',
+        'alamat', 
+        'jenis_peminjam',  // sesuaikan dengan tabel
+        'no_identitas',    // sesuaikan dengan tabel
+        'status'
     ];
 
     protected static function boot()

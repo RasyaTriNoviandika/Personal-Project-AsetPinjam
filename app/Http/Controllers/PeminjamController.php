@@ -1,16 +1,15 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Peminjam;
-use Alert;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class PeminjamController extends Controller
 {
     public function index()
     {
-        $peminjam = Peminjam::latest()->paginate(10);
+        $peminjam = Peminjam::with('peminjaman')->latest()->paginate(10);
         return view('peminjam.index', compact('peminjam'));
     }
 
@@ -30,10 +29,7 @@ class PeminjamController extends Controller
             'no_identitas' => 'required|string|max:50',
         ]);
 
-        $data = $request->all();
-        $data['kode_peminjam'] = 'PMJ-' . date('Ymd') . '-' . rand(100, 999);
-
-        Peminjam::create($data);
+        Peminjam::create($request->all());
 
         Alert::success('Berhasil', 'Data peminjam berhasil ditambahkan');
         return redirect()->route('peminjam.index');
@@ -41,6 +37,7 @@ class PeminjamController extends Controller
 
     public function show(Peminjam $peminjam)
     {
+        $peminjam->load('peminjaman.detailPeminjaman.barang');
         return view('peminjam.show', compact('peminjam'));
     }
 
@@ -68,8 +65,13 @@ class PeminjamController extends Controller
 
     public function destroy(Peminjam $peminjam)
     {
-        $peminjam->delete();
+        // Cek apakah masih ada peminjaman aktif
+        if ($peminjam->peminjaman()->whereIn('status', ['dipinjam', 'terlambat'])->exists()) {
+            Alert::error('Gagal', 'Peminjam tidak dapat dihapus karena masih memiliki peminjaman aktif');
+            return redirect()->route('peminjam.index');
+        }
 
+        $peminjam->delete();
         Alert::success('Berhasil', 'Data peminjam berhasil dihapus');
         return redirect()->route('peminjam.index');
     }

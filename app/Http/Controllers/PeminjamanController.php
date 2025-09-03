@@ -1,4 +1,6 @@
 <?php
+// app/Http/Controllers/PeminjamanController.php (Enhanced with user methods)
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -9,13 +11,19 @@ use App\Models\Barang;
 use App\Models\TransaksiKeuangan;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
-use Alert;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class PeminjamanController extends Controller
 {
     public function index(Request $request)
     {
+        $user = auth()->user();
         $query = Peminjaman::with(['peminjam', 'detailPeminjaman.barang']);
+        
+        // Filter based on user role
+        if ($user->isUser()) {
+            $query->where('user_id', $user->id);
+        }
         
         // Filter berdasarkan status
         if ($request->status && $request->status != 'semua') {
@@ -33,14 +41,49 @@ class PeminjamanController extends Controller
 
         $peminjaman = $query->latest()->paginate(15);
 
-        // Update status peminjaman yang terlambat
-        $this->updateStatusTerlambat();
+        // Update status peminjaman yang terlambat (only for admin/operator)
+        if ($user->hasAnyRole(['admin', 'operator'])) {
+            $this->updateStatusTerlambat();
+        }
 
-        return view('peminjaman.index', compact('peminjaman'));
+        $viewName = $user->isUser() ? 'peminjaman.user-index' : 'peminjaman.index';
+        return view($viewName, compact('peminjaman'));
+    }
+
+    public function userPeminjaman(Request $request)
+    {
+        $user = auth()->user();
+        $query = Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
+            ->where('user_id', $user->id);
+        
+        // Filter berdasarkan status
+        if ($request->status && $request->status != 'semua') {
+            $query->where('status', $request->status);
+        }
+
+        $peminjaman = $query->latest()->paginate(10);
+        
+        // Statistics for user
+        $userStats = [
+            'total' => Peminjaman::where('user_id', $user->id)->count(),
+            'aktif' => Peminjaman::where('user_id', $user->id)
+                ->whereIn('status', ['dipinjam', 'terlambat'])->count(),
+            'selesai' => Peminjaman::where('user_id', $user->id)
+                ->where('status', 'dikembalikan')->count(),
+            'terlambat' => Peminjaman::where('user_id', $user->id)
+                ->where('status', 'terlambat')->count(),
+        ];
+
+        return view('peminjaman.user-index', compact('peminjaman', 'userStats'));
     }
 
     public function create()
     {
+        // Only admin and operator can create
+        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $peminjam = Peminjam::where('status', 'aktif')->get();
         $barang = Barang::where('status', 'aktif')
                        ->where('stok_tersedia', '>', 0)
@@ -52,12 +95,17 @@ class PeminjamanController extends Controller
 
     public function store(Request $request)
     {
+        // Only admin and operator can create
+        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $request->validate([
-            'peminjam_id' => 'required|exists:peminjam,id',
+            'peminjam_id' => 'required|exists:peminjams,id',
             'tanggal_pinjam' => 'required|date|after_or_equal:today',
             'tanggal_kembali_rencana' => 'required|date|after:tanggal_pinjam',
             'barang' => 'required|array|min:1',
-            'barang.*.barang_id' => 'required|exists:barang,id',
+            'barang.*.barang_id' => 'required|exists:barangs,id',
             'barang.*.jumlah' => 'required|integer|min:1',
             'catatan' => 'nullable|string|max:1000'
         ]);
@@ -114,15 +162,17 @@ class PeminjamanController extends Controller
                 $barang->decrement('stok_tersedia', $item['jumlah']);
             }
 
-            // Buat transaksi keuangan
-            TransaksiKeuangan::create([
-                'peminjaman_id' => $peminjaman->id,
-                'jenis_transaksi' => 'masuk',
-                'kategori' => 'sewa',
-                'jumlah' => $totalBiayaSewa,
-                'deskripsi' => "Pembayaran sewa untuk peminjaman {$peminjaman->kode_peminjaman}",
-                'tanggal_transaksi' => now()
-            ]);
+            // Buat transaksi keuangan (only if user has permission)
+            if (auth()->user()->hasAnyRole(['admin', 'operator'])) {
+                TransaksiKeuangan::create([
+                    'peminjaman_id' => $peminjaman->id,
+                    'jenis_transaksi' => 'masuk',
+                    'kategori' => 'sewa',
+                    'jumlah' => $totalBiayaSewa,
+                    'deskripsi' => "Pembayaran sewa untuk peminjaman {$peminjaman->kode_peminjaman}",
+                    'tanggal_transaksi' => now()
+                ]);
+            }
 
             DB::commit();
 
@@ -138,12 +188,24 @@ class PeminjamanController extends Controller
 
     public function show(Peminjaman $peminjaman)
     {
+        $user = auth()->user();
+        
+        // Authorization check
+        if ($user->isUser() && $peminjaman->user_id !== $user->id) {
+            abort(403, 'Unauthorized');
+        }
+
         $peminjaman->load(['peminjam', 'detailPeminjaman.barang.kategori', 'user']);
         return view('peminjaman.show', compact('peminjaman'));
     }
 
     public function pengembalian(Peminjaman $peminjaman)
     {
+        // Only admin and operator can process returns
+        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         if ($peminjaman->status !== 'dipinjam' && $peminjaman->status !== 'terlambat') {
             Alert::error('Gagal', 'Peminjaman ini tidak dapat dikembalikan');
             return redirect()->route('peminjaman.index');
@@ -155,6 +217,11 @@ class PeminjamanController extends Controller
 
     public function prosesKembali(Request $request, Peminjaman $peminjaman)
     {
+        // Only admin and operator can process returns
+        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+            abort(403, 'Unauthorized');
+        }
+
         $request->validate([
             'tanggal_kembali_aktual' => 'required|date',
             'detail.*.kondisi_kembali' => 'required|in:baik,rusak_ringan,rusak_berat,hilang',
@@ -202,8 +269,8 @@ class PeminjamanController extends Controller
                 }
             }
 
-            // Buat transaksi denda jika ada
-            if ($totalDenda > 0) {
+            // Buat transaksi denda jika ada (only for admin/operator)
+            if ($totalDenda > 0 && auth()->user()->hasAnyRole(['admin', 'operator'])) {
                 TransaksiKeuangan::create([
                     'peminjaman_id' => $peminjaman->id,
                     'jenis_transaksi' => 'masuk',
@@ -235,6 +302,11 @@ class PeminjamanController extends Controller
 
     public function destroy(Peminjaman $peminjaman)
     {
+        // Only admin can delete
+        if (!auth()->user()->isAdmin()) {
+            abort(403, 'Only admin can delete records');
+        }
+
         if ($peminjaman->status === 'dipinjam' || $peminjaman->status === 'terlambat') {
             Alert::error('Gagal', 'Peminjaman yang sedang berlangsung tidak dapat dihapus');
             return redirect()->route('peminjaman.index');

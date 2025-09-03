@@ -1,8 +1,8 @@
 <?php
-
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +19,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        // Use Bootstrap 4 for pagination
+        Paginator::useBootstrapFour();
+        
+        // Set timezone
+        date_default_timezone_set('Asia/Jakarta');
     }
 }

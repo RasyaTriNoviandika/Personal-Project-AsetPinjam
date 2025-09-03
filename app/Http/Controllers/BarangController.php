@@ -1,13 +1,11 @@
 <?php
-// app/Http/Controllers/BarangController.php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Barang;
 use App\Models\KategoriBarang;
 use Illuminate\Support\Facades\Storage;
-use Alert;
+use RealRashid\SweetAlert\Facades\Alert;
 
 class BarangController extends Controller
 {
@@ -32,6 +30,8 @@ class BarangController extends Controller
             'harga_sewa_per_hari' => 'required|numeric|min:0',
             'denda_per_hari' => 'required|numeric|min:0',
             'kondisi' => 'required|in:baik,rusak_ringan,rusak_berat',
+            'status' => 'required|in:aktif,non_aktif',
+            'deskripsi' => 'nullable|string',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -50,7 +50,7 @@ class BarangController extends Controller
 
     public function show(Barang $barang)
     {
-        $barang->load('kategori', 'detailPeminjaman.peminjaman');
+        $barang->load('kategori', 'detailPeminjaman.peminjaman.peminjam');
         return view('barang.show', compact('barang'));
     }
 
@@ -69,6 +69,8 @@ class BarangController extends Controller
             'harga_sewa_per_hari' => 'required|numeric|min:0',
             'denda_per_hari' => 'required|numeric|min:0',
             'kondisi' => 'required|in:baik,rusak_ringan,rusak_berat',
+            'status' => 'required|in:aktif,non_aktif',
+            'deskripsi' => 'nullable|string',
             'gambar' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
@@ -83,7 +85,7 @@ class BarangController extends Controller
 
         // Update stok tersedia jika stok total berubah
         $selisihStok = $request->stok_total - $barang->stok_total;
-        $data['stok_tersedia'] = $barang->stok_tersedia + $selisihStok;
+        $data['stok_tersedia'] = max(0, $barang->stok_tersedia + $selisihStok);
 
         $barang->update($data);
 
@@ -107,4 +109,4 @@ class BarangController extends Controller
         Alert::success('Berhasil', 'Data barang berhasil dihapus');
         return redirect()->route('barang.index');
     }
-} 
+}

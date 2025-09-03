@@ -10,7 +10,7 @@ class TransaksiKeuangan extends Model
 {
     use HasFactory;
 
-    protected $table = 'transaksi_keuangan';
+    protected $table = 'transaksi_keuangans';
     protected $fillable = [
         'kode_transaksi', 'peminjaman_id', 'jenis_transaksi',
         'kategori', 'jumlah', 'deskripsi', 'tanggal_transaksi',

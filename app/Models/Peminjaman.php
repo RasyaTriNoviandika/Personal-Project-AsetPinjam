@@ -1,6 +1,4 @@
 <?php
-// app/Models/Peminjaman.php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,16 +9,31 @@ class Peminjaman extends Model
 {
     use HasFactory;
 
-    protected $table = 'peminjaman';
+    protected $table = 'peminjamans';
+    
     protected $fillable = [
-        'kode_peminjaman', 'peminjam_id', 'user_id',
-        'tanggal_pinjam', 'tanggal_kembali_rencana', 'tanggal_kembali_aktual',
-        'total_biaya_sewa', 'total_denda', 'total_bayar', 'status', 'catatan'
-    ];
+    'kode_peminjaman',
+    'peminjam_id',
+    'user_id',  
+    'tanggal_pinjam',
+    'tanggal_kembali_rencana',
+    'tanggal_kembali_aktual',
+    'total_biaya_sewa',
+    'denda',
+    'total_bayar',
+    'status',
+    'catatan'
+];
 
-    protected $dates = [
-        'tanggal_pinjam', 'tanggal_kembali_rencana', 'tanggal_kembali_aktual'
-    ];
+protected $casts = [
+    'tanggal_pinjam' => 'date',
+    'tanggal_kembali_rencana' => 'date',
+    'tanggal_kembali_aktual' => 'date',
+    'total_biaya_sewa' => 'decimal:2',
+    'denda' => 'decimal:2',
+    'total_bayar' => 'decimal:2',
+];
+
 
     protected static function boot()
     {
@@ -55,12 +68,12 @@ class Peminjaman extends Model
     public function getHariTerlambatAttribute()
     {
         if ($this->status == 'dikembalikan' && $this->tanggal_kembali_aktual) {
-            $terlambat = Carbon::parse($this->tanggal_kembali_aktual)->diffInDays(Carbon::parse($this->tanggal_kembali_rencana), false);
+            $terlambat = $this->tanggal_kembali_aktual->diffInDays($this->tanggal_kembali_rencana, false);
             return $terlambat > 0 ? $terlambat : 0;
         }
         
         if ($this->status == 'dipinjam' || $this->status == 'terlambat') {
-            $terlambat = Carbon::now()->diffInDays(Carbon::parse($this->tanggal_kembali_rencana), false);
+            $terlambat = Carbon::now()->diffInDays($this->tanggal_kembali_rencana, false);
             return $terlambat > 0 ? $terlambat : 0;
         }
         

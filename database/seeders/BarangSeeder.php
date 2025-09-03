@@ -11,28 +11,37 @@ class BarangSeeder extends Seeder
     {
         $barangs = [
             [
-                'nama_barang'    => 'Laptop ASUS',
-                'kategori_id'    => 1, // pastikan ada kategori dengan ID=1
-                'harga_sewa'     => 150000,   // harga sewa per hari
+                'nama_barang' => 'Laptop ASUS VivoBook',
+                'kategori_id' => 1,
+                'stok_total' => 5,
+                'stok_tersedia' => 5,
+                'harga_sewa_per_hari' => 150000,
                 'denda_per_hari' => 50000,
-                'kondisi'        => 'baik',
-                'status'         => 'aktif',
+                'kondisi' => 'baik',
+                'status' => 'aktif',
+                'deskripsi' => 'Laptop dengan processor Intel Core i5, RAM 8GB, SSD 256GB',
             ],
             [
-                'nama_barang'    => 'Sepeda Gunung',
-                'kategori_id'    => 2, // kategori_id=2 (misal "Kendaraan")
-                'harga_sewa'     => 50000,
-                'denda_per_hari' => 20000,
-                'kondisi'        => 'baik',
-                'status'         => 'aktif',
+                'nama_barang' => 'Proyektor Epson',
+                'kategori_id' => 2,
+                'stok_total' => 3,
+                'stok_tersedia' => 3,
+                'harga_sewa_per_hari' => 100000,
+                'denda_per_hari' => 30000,
+                'kondisi' => 'baik',
+                'status' => 'aktif',
+                'deskripsi' => 'Proyektor dengan resolusi 1080p dan brightness tinggi',
             ],
             [
-                'nama_barang'    => 'Gitar Akustik',
-                'kategori_id'    => 5, // kategori_id=5 (misal "Alat Musik")
-                'harga_sewa'     => 75000,
-                'denda_per_hari' => 25000,
-                'kondisi'        => 'baik',
-                'status'         => 'aktif',
+                'nama_barang' => 'Kamera DSLR Canon',
+                'kategori_id' => 3,
+                'stok_total' => 2,
+                'stok_tersedia' => 2,
+                'harga_sewa_per_hari' => 200000,
+                'denda_per_hari' => 60000,
+                'kondisi' => 'baik',
+                'status' => 'aktif',
+                'deskripsi' => 'Kamera DSLR Canon dengan lensa kit 18-55mm',
             ],
         ];
 

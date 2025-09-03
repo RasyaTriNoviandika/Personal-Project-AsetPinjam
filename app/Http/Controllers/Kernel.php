@@ -1,4 +1,5 @@
 <?php
+// app/Http/Kernel.php (Updated)
 
 namespace App\Http;
 
@@ -61,5 +62,10 @@ class Kernel extends HttpKernel
         'signed' => \Illuminate\Routing\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
+        
+        // Custom middleware
+        'role' => \App\Http\Middleware\CheckRole::class,
+        'admin' => \App\Http\Middleware\AdminOnly::class,
+        'user.access' => \App\Http\Middleware\UserAccess::class,
     ];
 }
