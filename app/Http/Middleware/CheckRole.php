@@ -14,13 +14,15 @@ class CheckRole
 
         $user = auth()->user();
         
-        // Jika tidak ada role di user, skip check
-        if (!property_exists($user, 'role') || !$user->role) {
+        // Jika tidak ada role di user atau untuk backward compatibility
+        if (!isset($user->role) || !$user->role) {
+            // Allow access if no role system is implemented
             return $next($request);
         }
 
+        // Check if user has any of the required roles
         if (!in_array($user->role, $roles)) {
-            abort(403, 'Unauthorized');
+            abort(403, 'Akses tidak diizinkan untuk role Anda');
         }
 
         return $next($request);

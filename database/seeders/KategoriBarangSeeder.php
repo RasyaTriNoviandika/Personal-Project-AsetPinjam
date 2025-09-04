@@ -1,4 +1,5 @@
 <?php
+// File: database/seeders/KategoriBarangSeeder.php
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -33,16 +34,6 @@ class KategoriBarangSeeder extends Seeder
                 'nama_kategori' => 'Alat Musik',
                 'deskripsi' => 'Berbagai jenis alat musik',
                 'jumlah_barang' => 0
-            ],
-            [
-                'nama_kategori' => 'Peralatan Event',
-                'deskripsi' => 'Sound system, lighting, backdrop, dll',
-                'jumlah_barang' => 0
-            ],
-            [
-                'nama_kategori' => 'Peralatan Camping',
-                'deskripsi' => 'Tenda, sleeping bag, kompor portable, dll',
-                'jumlah_barang' => 0
             ]
         ];
 
@@ -50,5 +41,4 @@ class KategoriBarangSeeder extends Seeder
             KategoriBarang::create($item);
         }
     }
-
 }

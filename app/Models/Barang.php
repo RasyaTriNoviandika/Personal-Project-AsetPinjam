@@ -14,7 +14,7 @@ class Barang extends Model
         'nama_barang',
         'kategori_id',
         'stok_total',
-        'stok_tersedia', 
+        'stok_tersedia',
         'harga_sewa_per_hari',
         'denda_per_hari',
         'kondisi',
@@ -26,6 +26,8 @@ class Barang extends Model
     protected $casts = [
         'harga_sewa_per_hari' => 'decimal:2',
         'denda_per_hari' => 'decimal:2',
+        'stok_total' => 'integer',
+        'stok_tersedia' => 'integer',
     ];
 
     // Relationships
@@ -50,7 +52,12 @@ class Barang extends Model
         return $query->where('stok_tersedia', '>', 0);
     }
 
-    // Accessors
+    public function scopeByKategori($query, $kategoriId)
+    {
+        return $query->where('kategori_id', $kategoriId);
+    }
+
+    // Accessors & Mutators
     public function getIsAvailableAttribute()
     {
         return $this->stok_tersedia > 0 && $this->status === 'aktif';
@@ -59,5 +66,24 @@ class Barang extends Model
     public function getTotalDipinjamAttribute()
     {
         return $this->detailPeminjaman()->sum('jumlah');
+    }
+
+    public function getStokDipinjamAttribute()
+    {
+        return $this->detailPeminjaman()
+            ->whereHas('peminjaman', function($query) {
+                $query->whereIn('status', ['dipinjam', 'terlambat']);
+            })
+            ->sum('jumlah');
+    }
+
+    public function getFormattedHargaSewaAttribute()
+    {
+        return 'Rp ' . number_format($this->harga_sewa_per_hari, 0, ',', '.');
+    }
+
+    public function getFormattedDendaAttribute()
+    {
+        return 'Rp ' . number_format($this->denda_per_hari, 0, ',', '.');
     }
 }

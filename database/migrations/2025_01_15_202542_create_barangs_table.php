@@ -8,10 +8,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
-        Schema::create('barang', function (Blueprint $table) {
+        Schema::create('barangs', function (Blueprint $table) {
             $table->id();
             $table->string('nama_barang');
-            $table->foreignId('kategori_id')->constrained('kategori')->onDelete('cascade');
+            $table->foreignId('kategori_id')->constrained('kategori_barangs')->onDelete('cascade');
             
             // stok
             $table->integer('stok_total')->default(0);

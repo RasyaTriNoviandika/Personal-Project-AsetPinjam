@@ -14,16 +14,20 @@ class RoleMiddleware
 
         $user = auth()->user();
         
-        // Jika user memiliki role dan role sesuai dengan yang diizinkan
-        if (property_exists($user, 'role') && in_array($user->role, $roles)) {
-            return $next($request);
+        // Pastikan user memiliki role
+        if (!$user->role) {
+            abort(403, 'Role tidak ditemukan');
         }
 
-        // Jika tidak ada role system atau untuk backward compatibility
-        if (!property_exists($user, 'role') || !$user->role) {
-            return $next($request);
+        // Check jika role user ada di dalam daftar role yang diizinkan
+        if (!in_array($user->role, $roles)) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'Akses tidak diizinkan untuk role ' . $user->role], 403);
+            }
+            
+            return redirect()->route('dashboard')->with('error', 'Akses tidak diizinkan untuk role ' . $user->role);
         }
 
-        abort(403, 'Akses tidak diizinkan');
+        return $next($request);
     }
 }

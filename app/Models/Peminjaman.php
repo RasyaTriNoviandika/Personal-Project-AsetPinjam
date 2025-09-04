@@ -12,28 +12,27 @@ class Peminjaman extends Model
     protected $table = 'peminjamans';
     
     protected $fillable = [
-    'kode_peminjaman',
-    'peminjam_id',
-    'user_id',  
-    'tanggal_pinjam',
-    'tanggal_kembali_rencana',
-    'tanggal_kembali_aktual',
-    'total_biaya_sewa',
-    'denda',
-    'total_bayar',
-    'status',
-    'catatan'
-];
+        'kode_peminjaman',
+        'peminjam_id',
+        'user_id',  
+        'tanggal_pinjam',
+        'tanggal_kembali_rencana',
+        'tanggal_kembali_aktual',
+        'total_biaya_sewa',
+        'total_denda',
+        'total_bayar',
+        'status',
+        'catatan'
+    ];
 
-protected $casts = [
-    'tanggal_pinjam' => 'date',
-    'tanggal_kembali_rencana' => 'date',
-    'tanggal_kembali_aktual' => 'date',
-    'total_biaya_sewa' => 'decimal:2',
-    'denda' => 'decimal:2',
-    'total_bayar' => 'decimal:2',
-];
-
+    protected $casts = [
+        'tanggal_pinjam' => 'date',
+        'tanggal_kembali_rencana' => 'date',
+        'tanggal_kembali_aktual' => 'date',
+        'total_biaya_sewa' => 'decimal:2',
+        'total_denda' => 'decimal:2',
+        'total_bayar' => 'decimal:2',
+    ];
 
     protected static function boot()
     {
@@ -45,6 +44,7 @@ protected $casts = [
         });
     }
 
+    // Relationships
     public function peminjam()
     {
         return $this->belongsTo(Peminjam::class);
@@ -65,6 +65,43 @@ protected $casts = [
         return $this->hasMany(TransaksiKeuangan::class);
     }
 
+    // Scopes
+    public function scopeAktif($query)
+    {
+        return $query->whereIn('status', ['dipinjam', 'terlambat']);
+    }
+
+    public function scopeDipinjam($query)
+    {
+        return $query->where('status', 'dipinjam');
+    }
+
+    public function scopeTerlambat($query)
+    {
+        return $query->where('status', 'terlambat');
+    }
+
+    public function scopeDikembalikan($query)
+    {
+        return $query->where('status', 'dikembalikan');
+    }
+
+    public function scopeByUser($query, $userId)
+    {
+        return $query->where('user_id', $userId);
+    }
+
+    public function scopeByPeminjam($query, $peminjamId)
+    {
+        return $query->where('peminjam_id', $peminjamId);
+    }
+
+    public function scopeByDateRange($query, $startDate, $endDate)
+    {
+        return $query->whereBetween('tanggal_pinjam', [$startDate, $endDate]);
+    }
+
+    // Accessors
     public function getHariTerlambatAttribute()
     {
         if ($this->status == 'dikembalikan' && $this->tanggal_kembali_aktual) {
@@ -78,5 +115,53 @@ protected $casts = [
         }
         
         return 0;
+    }
+
+    public function getDurasiPeminjamanAttribute()
+    {
+        return $this->tanggal_pinjam->diffInDays($this->tanggal_kembali_rencana) + 1;
+    }
+
+    public function getIsTerlambatAttribute()
+    {
+        return $this->status === 'terlambat' || 
+               ($this->status === 'dipinjam' && Carbon::now()->gt($this->tanggal_kembali_rencana));
+    }
+
+    public function getStatusBadgeAttribute()
+    {
+        $badges = [
+            'dipinjam' => 'bg-primary',
+            'dikembalikan' => 'bg-success', 
+            'terlambat' => 'bg-danger',
+            'batal' => 'bg-secondary'
+        ];
+
+        return $badges[$this->status] ?? 'bg-secondary';
+    }
+
+    public function getTotalItemAttribute()
+    {
+        return $this->detailPeminjaman->sum('jumlah');
+    }
+
+    // Methods
+    public function hitungDenda()
+    {
+        if ($this->hari_terlambat > 0) {
+            $totalDenda = 0;
+            foreach ($this->detailPeminjaman as $detail) {
+                $totalDenda += $detail->barang->denda_per_hari * $detail->jumlah * $this->hari_terlambat;
+            }
+            return $totalDenda;
+        }
+        return 0;
+    }
+
+    public function updateStatus()
+    {
+        if ($this->status === 'dipinjam' && Carbon::now()->gt($this->tanggal_kembali_rencana)) {
+            $this->update(['status' => 'terlambat']);
+        }
     }
 }

@@ -1,11 +1,11 @@
 <?php
-namespace App\Traits;
+// Create file: app/Traits/ApiResponse.php
 
-use Illuminate\Http\JsonResponse;
+namespace App\Traits;
 
 trait ApiResponse
 {
-    protected function successResponse($data = null, $message = 'Success', $code = 200): JsonResponse
+    protected function successResponse($data = null, $message = 'Success', $code = 200)
     {
         return response()->json([
             'success' => true,
@@ -14,32 +14,50 @@ trait ApiResponse
         ], $code);
     }
 
-    protected function errorResponse($message = 'Error', $code = 400, $errors = null): JsonResponse
+    protected function errorResponse($message = 'Error', $code = 400, $errors = null)
+    {
+        $response = [
+            'success' => false,
+            'message' => $message,
+        ];
+
+        if ($errors) {
+            $response['errors'] = $errors;
+        }
+
+        return response()->json($response, $code);
+    }
+
+    protected function validationErrorResponse($errors, $message = 'Validation Error')
     {
         return response()->json([
             'success' => false,
             'message' => $message,
             'errors' => $errors
-        ], $code);
+        ], 422);
     }
 
-    protected function validationErrorResponse($errors, $message = 'Validation failed'): JsonResponse
+    protected function notFoundResponse($message = 'Resource not found')
     {
-        return $this->errorResponse($message, 422, $errors);
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 404);
     }
 
-    protected function notFoundResponse($message = 'Resource not found'): JsonResponse
+    protected function unauthorizedResponse($message = 'Unauthorized')
     {
-        return $this->errorResponse($message, 404);
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 401);
     }
 
-    protected function unauthorizedResponse($message = 'Unauthorized'): JsonResponse
+    protected function forbiddenResponse($message = 'Forbidden')
     {
-        return $this->errorResponse($message, 401);
-    }
-
-    protected function forbiddenResponse($message = 'Forbidden'): JsonResponse
-    {
-        return $this->errorResponse($message, 403);
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+        ], 403);
     }
 }

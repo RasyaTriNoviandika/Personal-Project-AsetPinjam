@@ -1,40 +1,52 @@
 <?php
-
 namespace App\Policies;
 
 use App\Models\User;
 use App\Models\Peminjaman;
+use Illuminate\Auth\Access\HandlesAuthorization;
 
 class PeminjamanPolicy
 {
-    public function viewAny(User $user): bool
+    use HandlesAuthorization;
+
+    /**
+     * Determine whether the user can view the model.
+     */
+    public function view(User $user, Peminjaman $peminjaman)
     {
+        // Admin dan operator bisa lihat semua
+        if (in_array($user->role, ['admin', 'operator'])) {
+            return true;
+        }
+
+        // User hanya bisa lihat peminjaman sendiri
+        return $user->id === $peminjaman->user_id;
+    }
+
+    /**
+     * Determine whether the user can create models.
+     */
+    public function create(User $user)
+    {
+        // Semua role bisa buat peminjaman
         return true;
     }
 
-    public function view(User $user, Peminjaman $peminjaman): bool
+    /**
+     * Determine whether the user can update the model.
+     */
+    public function update(User $user, Peminjaman $peminjaman)
     {
-        // Admin and operator can view all, users can view their own
-        return $user->hasAnyRole(['admin', 'operator']) || $peminjaman->user_id === $user->id;
+        // Hanya admin dan operator yang bisa update
+        return in_array($user->role, ['admin', 'operator']);
     }
 
-    public function create(User $user): bool
+    /**
+     * Determine whether the user can delete the model.
+     */
+    public function delete(User $user, Peminjaman $peminjaman)
     {
-        return $user->hasAnyRole(['admin', 'operator']);
-    }
-
-    public function update(User $user, Peminjaman $peminjaman): bool
-    {
-        return $user->hasAnyRole(['admin', 'operator']);
-    }
-
-    public function delete(User $user, Peminjaman $peminjaman): bool
-    {
-        return $user->isAdmin();
-    }
-
-    public function return(User $user, Peminjaman $peminjaman): bool
-    {
-        return $user->hasAnyRole(['admin', 'operator']);
+        // Hanya admin yang bisa delete
+        return $user->role === 'admin';
     }
 }

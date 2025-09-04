@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('nama_kategori');
             $table->string('deskripsi')->nullable();
+            $table->string('status')->default('aktif');
             $table->integer('jumlah_barang')->default(0);
             $table->timestamps();
         });

@@ -22,7 +22,7 @@
                     <span class="nav-link">Peminjaman Aktif: {{ $totalPeminjamanAktif }}</span>
                 </li>
                 <li class="nav-item mb-2">
-                    <span class="nav-link">Pendapatan Bulan Ini: Rp {{ number_format($totalPendapatanBulanIni, 0, ',', '.') }}</span>
+                    <span class="nav-link">Pendapatan Bulan Ini: Rp {{ number_format($totalPendapatanBulanIni ?? 0) }}</span>
                 </li>
                 <li class="nav-item mt-2">
                     <button class="btn btn-outline-secondary btn-sm w-100" onclick="refreshData()">
@@ -102,7 +102,7 @@
                 <div class="row no-gutters align-items-center">
                     <div class="col mr-2">
                         <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pendapatan Bulan Ini</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp {{ number_format($totalPendapatanBulanIni, 0, ',', '.') }}</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp {{ number_format($totalPendapatanBulanIni ?? 0) }}</div>
                     </div>
                     <div class="col-auto">
                         <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
