@@ -12,76 +12,34 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-   public function index()
-{
-    $user = auth()->user();
+    public function index()
+    {
+        $role = auth()->user()->role;
+        $user = auth()->user();
 
-    // Base statistics
-    $totalBarang = Barang::count();
-    $totalPeminjam = Peminjam::count();
-    $totalPeminjamanAktif = Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count();
+        if ($role === 'admin') {
+            $dashboardData = $this->getAdminData();
+            return view('dashboard.admin', $dashboardData);
 
-    $dashboardData = [
-        'totalBarang' => $totalBarang,
-        'totalPeminjam' => $totalPeminjam,
-        'totalPeminjamanAktif' => $totalPeminjamanAktif,
-    ];
+        } elseif ($role === 'operator') {
+            $dashboardData = $this->getOperatorData();
+            return view('dashboard.operator', $dashboardData);
 
-    if ($user->isAdmin()) {
-        $dashboardData = array_merge($dashboardData, $this->getAdminData());
+        } elseif ($role === 'user') {
+            $dashboardData = $this->getUserData($user);
+            return view('dashboard.user', $dashboardData);
+        }
 
-        // ✅ Pendapatan bulan ini
-        $dashboardData['totalPendapatanBulanIni'] = TransaksiKeuangan::whereMonth('created_at', Carbon::now()->month)
-            ->whereYear('created_at', Carbon::now()->year)
-            ->sum('jumlah');
-
-        // ✅ Barang populer
-        $dashboardData['barangPopuler'] = Barang::withCount('detailPeminjaman')
-    ->orderByDesc('detail_peminjaman_count')
-    ->take(5)
-    ->get()
-    ->map(function ($barang) {
-        $barang->total_dipinjam = $barang->detail_peminjaman_count;
-        return $barang;
-    });
-
-
-        // ✅ Peminjaman terlambat
-        $dashboardData['peminjamanTerlambat'] = Peminjaman::where('status', 'dipinjam')
-            ->where('tanggal_kembali_rencana', '<', Carbon::now())
-            ->with('peminjam')
-            ->get();
-
-        // ✅ Stok menipis
-        // $dashboardData['stokMenipis'] = Barang::whereColumn('stok_tersedia', '<=', 'stok_minimal')
-        //     ->get();
-
-        // ✅ Pendapatan 6 bulan terakhir (untuk chart)
-        $dashboardData['pendapatanBulanan'] = TransaksiKeuangan::selectRaw('MONTH(created_at) as bulan, SUM(jumlah) as pendapatan')
-            ->where('created_at', '>=', Carbon::now()->subMonths(6))
-            ->groupBy('bulan')
-            ->orderBy('bulan')
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'bulan' => Carbon::create()->month($item->bulan)->translatedFormat('F'),
-                    'pendapatan' => $item->pendapatan,
-                ];
-            });
-    } else {
-        // Biar aman untuk role non-admin
-        $dashboardData['barangPopuler'] = collect();
-        $dashboardData['peminjamanTerlambat'] = collect();
-        $dashboardData['stokMenipis'] = collect();
-        $dashboardData['pendapatanBulanan'] = collect();
-        $dashboardData['totalPendapatanBulanIni'] = 0;
+        abort(403, 'Akses tidak diizinkan untuk role Anda');
     }
-
-    return view('dashboard.index', $dashboardData);
-}
 
     private function getAdminData()
     {
+        // Base statistics
+        $totalBarang = Barang::count();
+        $totalPeminjam = Peminjam::count();
+        $totalPeminjamanAktif = Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count();
+
         // Financial data - Admin only
         $totalPendapatanBulanIni = TransaksiKeuangan::where('jenis_transaksi', 'masuk')
             ->whereMonth('tanggal_transaksi', Carbon::now()->month)
@@ -93,24 +51,17 @@ class DashboardController extends Controller
             ->whereYear('tanggal_transaksi', Carbon::now()->year)
             ->sum('jumlah');
 
-        // User statistics
-        $totalUsers = User::count();
-        $activeUsers = User::where('status', 'active')->count();
-
-        // Revenue trend (last 6 months)
-        $pendapatanBulanan = $this->getMonthlyRevenue();
-
-        // Most popular items
-        $barangPopuler = $this->getMostPopularItems();
-
         return [
+            'totalBarang' => $totalBarang,
+            'totalPeminjam' => $totalPeminjam,
+            'totalPeminjamanAktif' => $totalPeminjamanAktif,
             'totalPendapatanBulanIni' => $totalPendapatanBulanIni,
             'totalPengeluaranBulanIni' => $totalPengeluaranBulanIni,
             'netProfitBulanIni' => $totalPendapatanBulanIni - $totalPengeluaranBulanIni,
-            'totalUsers' => $totalUsers,
-            'activeUsers' => $activeUsers,
-            'pendapatanBulanan' => $pendapatanBulanan,
-            'barangPopuler' => $barangPopuler,
+            'totalUsers' => User::count(),
+            'activeUsers' => User::where('status', 'active')->count(),
+            'pendapatanBulanan' => $this->getMonthlyRevenue(),
+            'barangPopuler' => $this->getMostPopularItems(),
             'peminjamanTerlambat' => $this->getOverdueRentals(),
             'stokMenipis' => $this->getLowStockItems(),
             'transaksiTerbaru' => $this->getRecentTransactions(),
@@ -172,7 +123,6 @@ class DashboardController extends Controller
                 ->limit($limit)
                 ->get();
         } catch (\Exception $e) {
-            // Fallback if table doesn't exist yet
             return collect();
         }
     }

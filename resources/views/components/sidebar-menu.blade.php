@@ -1,9 +1,36 @@
 @php
     use App\Helpers\RoleHelper;
-    $userRole = auth()->user()->role ?? 'user';
-    $menus = RoleHelper::getMenuByRole($userRole);
+    $userRole = auth()->user()->role ?? null;
+    // $menus = RoleHelper::getMenuByRole($userRole);
 @endphp
 
+<nav>
+    <ul>
+        <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
+
+        @if($role === 'admin')
+            <li><a href="{{ route('laporan.index') }}">Laporan</a></li>
+            <li><a href="{{ route('user.index') }}">User  </a></li>
+            <li><a href="{{ route('barang.index') }}">Barang</a></li>
+        @endif
+
+        @if($role === 'operator')
+            <li><a href="{{ route('peminjaman.index') }}">Peminjaman</a></li>
+        @endif
+
+        @if($role === 'user')
+            <li><a href="{{ route('peminjaman.status') }}">Status Peminjaman</a></li>
+        @endif
+
+        <li>
+            <form method="POST" action="{{ route('logout') }}">
+                @csrf
+                <button type="submit" style="background:none;border:none;padding:0;color:#007bff;cursor:pointer;">Logout</button>
+            </form>
+        </li>
+    </ul>
+    
+</nav>
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
     <!-- Brand Logo -->
     <a href="{{ route('dashboard') }}" class="brand-link">
