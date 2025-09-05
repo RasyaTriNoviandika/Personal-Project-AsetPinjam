@@ -1,4 +1,6 @@
 <?php
+// database/seeders/UserSeeder.php
+
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -7,57 +9,44 @@ use Illuminate\Support\Facades\Hash;
 
 class UserSeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        User::truncate();
-        
         // Create Admin User
-        User::create([
-            'name' => 'Administrator',
-            'email' => 'admin@app.com',
-            'password' => Hash::make('admin123'),
-            'role' => 'admin',
-            'status' => 'active',
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'admin@admin.com'],
+            [
+                'name' => 'Administrator',
+                'password' => Hash::make('password'),
+                'role' => 'admin',
+                'status' => 'active',
+            ]
+        );
 
         // Create Operator User
-        User::create([
-            'name' => 'Operator',
-            'email' => 'operator@app.com',
-            'password' => Hash::make('operator123'),
-            'role' => 'operator',
-            'status' => 'active',
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'operator@operator.com'],
+            [
+                'name' => 'Operator',
+                'password' => Hash::make('password'),
+                'role' => 'operator',
+                'status' => 'active',
+            ]
+        );
 
         // Create Regular User
-        User::create([
-            'name' => 'User Demo',
-            'email' => 'user@app.com',
-            'password' => Hash::make('user123'),
-            'role' => 'user',
-            'status' => 'active',
-            'email_verified_at' => now(),
-        ]);
+        User::firstOrCreate(
+            ['email' => 'user@user.com'],
+            [
+                'name' => 'Regular User',
+                'password' => Hash::make('password'),
+                'role' => 'user',
+                'status' => 'active',
+            ]
+        );
 
-        // Create additional demo users
-        User::create([
-            'name' => 'John Doe',
-            'email' => 'john@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'user',
-            'status' => 'active',
-            'email_verified_at' => now(),
-        ]);
-
-        User::create([
-            'name' => 'Jane Smith',
-            'email' => 'jane@example.com',
-            'password' => Hash::make('password'),
-            'role' => 'user',
-            'status' => 'active',
-            'email_verified_at' => now(),
-        ]);
+        $this->command->info('Users created successfully!');
+        $this->command->info('Admin: admin@admin.com / password');
+        $this->command->info('Operator: operator@operator.com / password');
+        $this->command->info('User: user@user.com / password');
     }
 }

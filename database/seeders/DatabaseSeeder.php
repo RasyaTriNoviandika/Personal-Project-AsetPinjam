@@ -73,4 +73,3 @@ class DatabaseSeeder extends Seeder
         echo "User: user@example.com / password\n";
     }
 }
-

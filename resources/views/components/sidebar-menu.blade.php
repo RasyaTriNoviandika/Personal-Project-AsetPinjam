@@ -1,98 +1,73 @@
-@php
-    use App\Helpers\RoleHelper;
-    $userRole = auth()->user()->role ?? null;
-    // $menus = RoleHelper::getMenuByRole($userRole);
-@endphp
+<ul class="sidebar-menu">
 
-<nav>
-    <ul>
-        <li><a href="{{ route('dashboard') }}">Dashboard</a></li>
+    {{-- Dashboard: semua role bisa lihat --}}
+    <li>
+        <a href="{{ route('dashboard') }}">
+            <i class="fas fa-home"></i> Dashboard
+        </a>
+    </li>
 
-        @if($role === 'admin')
-            <li><a href="{{ route('laporan.index') }}">Laporan</a></li>
-            <li><a href="{{ route('user.index') }}">User  </a></li>
-            <li><a href="{{ route('barang.index') }}">Barang</a></li>
-        @endif
+    {{-- Menu khusus Admin --}}
+    @if(auth()->user()->hasRole('admin'))
+        <li class="menu-header">Admin Menu</li>
 
-        @if($role === 'operator')
-            <li><a href="{{ route('peminjaman.index') }}">Peminjaman</a></li>
-        @endif
-
-        @if($role === 'user')
-            <li><a href="{{ route('peminjaman.status') }}">Status Peminjaman</a></li>
-        @endif
-
-        <li>
-            <form method="POST" action="{{ route('logout') }}">
-                @csrf
-                <button type="submit" style="background:none;border:none;padding:0;color:#007bff;cursor:pointer;">Logout</button>
-            </form>
-        </li>
-    </ul>
-    
-</nav>
-<aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <!-- Brand Logo -->
-    <a href="{{ route('dashboard') }}" class="brand-link">
-        <img src="{{ asset('admin/dist/img/AdminLTELogo.png') }}" alt="Logo" class="brand-image img-circle elevation-3">
-        <span class="brand-text font-weight-light">Rental System</span>
-    </a>
-
-    <!-- Sidebar -->
-    <div class="sidebar">
-        <!-- User Panel -->
-        <div class="user-panel mt-3 pb-3 mb-3 d-flex">
-            <div class="image">
-                <img src="{{ asset('admin/dist/img/user2-160x160.jpg') }}" class="img-circle elevation-2" alt="User Image">
-            </div>
-            <div class="info">
-                <a href="{{ route('settings.profile') }}" class="d-block">
-                    {{ auth()->user()->name }}
-                    <small class="badge badge-{{ RoleHelper::getRoleColor($userRole) }} ml-1">
-                        {{ RoleHelper::getRoleName($userRole) }}
-                    </small>
+        @if(auth()->user()->hasPermission('manage_users'))
+            <li>
+                <a href="{{ route('users.index') }}">
+                    <i class="fas fa-users"></i> Kelola User
                 </a>
-            </div>
-        </div>
+            </li>
+        @endif
 
-        <!-- Sidebar Menu -->
-        <nav class="mt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                @foreach($menus as $key => $menu)
-                    @if(strpos($key, 'divider_') === 0)
-                        {{-- Divider --}}
-                        <li class="nav-header">{{ $menu }}</li>
-                    @else
-                        @php
-                            [$label, $icon, $route] = $menu;
-                            $isActive = request()->routeIs($route . '*');
-                        @endphp
-                        
-                        <li class="nav-item">
-                            <a href="{{ route($route) }}" class="nav-link {{ $isActive ? 'active' : '' }}">
-                                <i class="nav-icon {{ $icon }}"></i>
-                                <p>{{ $label }}</p>
-                                @if($isActive)
-                                    <i class="right fas fa-angle-left"></i>
-                                @endif
-                            </a>
-                        </li>
-                    @endif
-                @endforeach
+        @if(auth()->user()->hasPermission('system_settings'))
+            <li>
+                <a href="{{ route('settings.index') }}">
+                    <i class="fas fa-cog"></i> Pengaturan Sistem
+                </a>
+            </li>
+        @endif
+    @endif
 
-                {{-- Logout --}}
-                <li class="nav-header">SISTEM</li>
-                <li class="nav-item">
-                    <a href="{{ route('logout') }}" class="nav-link"
-                       onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
-                        <i class="nav-icon fas fa-sign-out-alt"></i>
-                        <p>Logout</p>
-                    </a>
-                    <form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-                        @csrf
-                    </form>
-                </li>
-            </ul>
-        </nav>
-    </div>
-</aside>
+    {{-- Menu khusus Operator --}}
+    @if(auth()->user()->hasRole('operator'))
+        <li class="menu-header">Operator Menu</li>
+
+        @if(auth()->user()->hasPermission('manage_rentals'))
+            <li>
+                <a href="{{ route('rentals.index') }}">
+                    <i class="fas fa-box"></i> Kelola Peminjaman
+                </a>
+            </li>
+        @endif
+
+        @if(auth()->user()->hasPermission('view_reports'))
+            <li>
+                <a href="{{ route('reports.index') }}">
+                    <i class="fas fa-chart-line"></i> Laporan
+                </a>
+            </li>
+        @endif
+    @endif
+
+    {{-- Menu khusus User --}}
+    @if(auth()->user()->hasRole('user'))
+        <li class="menu-header">User Menu</li>
+
+        @if(auth()->user()->hasPermission('rent_items'))
+            <li>
+                <a href="{{ route('items.index') }}">
+                    <i class="fas fa-shopping-cart"></i> Sewa Barang
+                </a>
+            </li>
+        @endif
+
+        @if(auth()->user()->hasPermission('view_own'))
+            <li>
+                <a href="{{ route('myrentals.index') }}">
+                    <i class="fas fa-list"></i> Peminjaman Saya
+                </a>
+            </li>
+        @endif
+    @endif
+
+</ul>

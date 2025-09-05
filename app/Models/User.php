@@ -1,6 +1,9 @@
 <?php
+// app/Models/User.php
+
 namespace App\Models;
 
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -22,42 +25,25 @@ class User extends Authenticatable
         'remember_token',
     ];
 
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+    ];
 
-    protected static function boot()
-    {
-        parent::boot();
-        
-        static::creating(function ($model) {
-            if (!$model->role) {
-                $model->role = 'user';
-            }
-            if (!$model->status) {
-                $model->status = 'active';
-            }
-        });
-    }
-
-    // Role checking methods
+    // ===== Role checking =====
     public function isAdmin()
     {
         return $this->role === 'admin';
     }
 
-    public function isUser()
-    {
-        return $this->role === 'user';
-    }
-
     public function isOperator()
     {
         return $this->role === 'operator';
+    }
+
+    public function isUser()
+    {
+        return $this->role === 'user';
     }
 
     public function hasRole($role)
@@ -67,148 +53,44 @@ class User extends Authenticatable
 
     public function hasAnyRole($roles)
     {
-        return in_array($this->role, (array) $roles);
+        return in_array($this->role, $roles);
     }
 
-    public function can($permission, $model = null)
+    // ===== Custom permission check =====
+    public function hasPermission($permission)
     {
-        // Basic permission system based on role
         $permissions = [
-            'admin' => ['*'], // Admin can do everything
+            'admin' => [
+                'create', 'read', 'update', 'delete', 
+                'manage_users', 'view_reports', 'export_data',
+                'manage_finances', 'system_settings'
+            ],
             'operator' => [
-                'view_dashboard', 'manage_barang', 'manage_peminjam', 
-                'manage_peminjaman', 'view_reports'
+                'create', 'read', 'update', 
+                'view_reports', 'export_data', 'manage_rentals'
             ],
             'user' => [
-                'view_dashboard', 'view_own_peminjaman', 'create_peminjaman'
+                'read', 'create_own', 'view_own', 'rent_items'
             ]
         ];
 
-        $userPermissions = $permissions[$this->role] ?? [];
-        
-        if (in_array('*', $userPermissions)) {
-            return true;
-        }
-
-        return in_array($permission, $userPermissions);
+        return in_array($permission, $permissions[$this->role] ?? []);
     }
 
-    // Relationships
+    // ===== Relationships =====
     public function peminjaman()
     {
         return $this->hasMany(Peminjaman::class);
     }
 
-    // Scopes
-    public function scopeAdmin($query)
-    {
-        return $query->where('role', 'admin');
-    }
-
-    public function scopeUser($query)
-    {
-        return $query->where('role', 'user');
-    }
-
-    public function scopeOperator($query)
-    {
-        return $query->where('role', 'operator');
-    }
-
+    // ===== Scopes =====
     public function scopeActive($query)
     {
         return $query->where('status', 'active');
     }
 
-    public function scopeInactive($query)
+    public function scopeByRole($query, $role)
     {
-        return $query->where('status', 'inactive');
-    }
-
-    // Accessors
-    public function getRoleNameAttribute()
-    {
-        $roles = [
-            'admin' => 'Administrator',
-            'user' => 'Pengguna',
-            'operator' => 'Operator'
-        ];
-
-        return $roles[$this->role] ?? 'Unknown';
-    }
-
-    public function getRoleBadgeAttribute()
-    {
-        $badges = [
-            'admin' => 'bg-danger',
-            'operator' => 'bg-warning',
-            'user' => 'bg-primary'
-        ];
-
-        return $badges[$this->role] ?? 'bg-secondary';
-    }
-
-    public function getStatusBadgeAttribute()
-    {
-        return $this->status === 'active' ? 'bg-success' : 'bg-secondary';
-    }
-
-    public function getIsActiveAttribute()
-    {
-        return $this->status === 'active';
-    }
-
-    public function getTotalPeminjamanAttribute()
-    {
-        return $this->peminjaman()->count();
-    }
-
-    public function getPeminjamanAktifAttribute()
-    {
-        return $this->peminjaman()->whereIn('status', ['dipinjam', 'terlambat'])->count();
-    }
-
-    public function getInitialsAttribute()
-    {
-        $names = explode(' ', $this->name);
-        $initials = '';
-        
-        foreach ($names as $name) {
-            $initials .= strtoupper(substr($name, 0, 1));
-        }
-        
-        return $initials;
-    }
-
-    // Methods
-    public function canAccessFinancial()
-    {
-        return $this->isAdmin();
-    }
-
-    public function canManageUsers()
-    {
-        return $this->isAdmin();
-    }
-
-    public function canManageData()
-    {
-        return $this->hasAnyRole(['admin', 'operator']);
-    }
-
-    public function canViewReports()
-    {
-        return $this->hasAnyRole(['admin', 'operator']);
-    }
-
-    public function getLastLogin()
-    {
-        // You might want to track last login in a separate column
-        return $this->updated_at;
-    }
-
-    public function hasActivePeminjaman()
-    {
-        return $this->peminjaman()->whereIn('status', ['dipinjam', 'terlambat'])->exists();
+        return $query->where('role', $role);
     }
 }

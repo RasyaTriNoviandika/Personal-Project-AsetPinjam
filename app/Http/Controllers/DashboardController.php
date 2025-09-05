@@ -1,4 +1,6 @@
 <?php
+// app/Http/Controllers/DashboardController.php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -9,92 +11,105 @@ use App\Models\TransaksiKeuangan;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class DashboardController extends Controller
 {
     public function index()
     {
-        $role = auth()->user()->role;
         $user = auth()->user();
 
-        if ($role === 'admin') {
-            $dashboardData = $this->getAdminData();
-            return view('dashboard.admin', $dashboardData);
-
-        } elseif ($role === 'operator') {
-            $dashboardData = $this->getOperatorData();
-            return view('dashboard.operator', $dashboardData);
-
-        } elseif ($role === 'user') {
-            $dashboardData = $this->getUserData($user);
-            return view('dashboard.user', $dashboardData);
+        if (!$user || !$user->role) {
+            abort(403, 'No role assigned to your account');
         }
 
-        abort(403, 'Akses tidak diizinkan untuk role Anda');
+        return match ($user->role) {
+            'admin'    => $this->adminDashboard(),
+            'operator' => $this->operatorDashboard(),
+            'user'     => $this->userDashboard(),
+            default    => abort(403, 'Invalid role assigned'),
+        };
     }
 
-    private function getAdminData()
+    private function adminDashboard()
     {
-        // Base statistics
-        $totalBarang = Barang::count();
-        $totalPeminjam = Peminjam::count();
-        $totalPeminjamanAktif = Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count();
-
-        // Financial data - Admin only
-        $totalPendapatanBulanIni = TransaksiKeuangan::where('jenis_transaksi', 'masuk')
-            ->whereMonth('tanggal_transaksi', Carbon::now()->month)
-            ->whereYear('tanggal_transaksi', Carbon::now()->year)
-            ->sum('jumlah');
-
-        $totalPengeluaranBulanIni = TransaksiKeuangan::where('jenis_transaksi', 'keluar')
-            ->whereMonth('tanggal_transaksi', Carbon::now()->month)
-            ->whereYear('tanggal_transaksi', Carbon::now()->year)
-            ->sum('jumlah');
-
-        return [
-            'totalBarang' => $totalBarang,
-            'totalPeminjam' => $totalPeminjam,
-            'totalPeminjamanAktif' => $totalPeminjamanAktif,
-            'totalPendapatanBulanIni' => $totalPendapatanBulanIni,
-            'totalPengeluaranBulanIni' => $totalPengeluaranBulanIni,
-            'netProfitBulanIni' => $totalPendapatanBulanIni - $totalPengeluaranBulanIni,
-            'totalUsers' => User::count(),
-            'activeUsers' => User::where('status', 'active')->count(),
-            'pendapatanBulanan' => $this->getMonthlyRevenue(),
-            'barangPopuler' => $this->getMostPopularItems(),
-            'peminjamanTerlambat' => $this->getOverdueRentals(),
-            'stokMenipis' => $this->getLowStockItems(),
-            'transaksiTerbaru' => $this->getRecentTransactions(),
+        $data = [
+            'totalBarang'            => Barang::count(),
+            'totalPeminjam'          => Peminjam::count(),
+            'totalUsers'             => User::count(),
+            'totalPeminjamanAktif'   => Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count(),
+            'totalPendapatanBulanIni'=> $this->getPendapatanBulanIni(),
+            'totalPengeluaranBulanIni'=> $this->getPengeluaranBulanIni(),
+            'pendapatanBulanan'      => $this->getPendapatanBulanan(),
+            'barangPopuler'          => $this->getBarangPopuler(10),
+            'peminjamanTerlambat'    => $this->getPeminjamanTerlambat(),
+            'stokMenipis'            => $this->getStokMenipis(),
         ];
+
+        return view('dashboard.admin', $data);
     }
 
-    private function getOperatorData()
+    private function operatorDashboard()
     {
-        return [
-            'peminjamanHariIni' => Peminjaman::whereDate('tanggal_pinjam', Carbon::today())->count(),
-            'pengembalianHariIni' => Peminjaman::whereDate('tanggal_kembali_aktual', Carbon::today())->count(),
-            'peminjamanTerlambat' => $this->getOverdueRentals(),
-            'stokMenipis' => $this->getLowStockItems(),
-            'barangPopuler' => $this->getMostPopularItems(5),
-            'jadwalKembali' => $this->getUpcomingReturns(),
+        $data = [
+            'totalBarang'          => Barang::count(),
+            'totalPeminjam'        => Peminjam::count(),
+            'totalPeminjamanAktif' => Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count(),
+            'peminjamanHariIni'    => Peminjaman::whereDate('tanggal_pinjam', Carbon::today())->count(),
+            'pengembalianHariIni'  => Peminjaman::whereDate('tanggal_kembali_aktual', Carbon::today())->count(),
+            'barangPopuler'        => $this->getBarangPopuler(5),
+            'peminjamanTerlambat'  => $this->getPeminjamanTerlambat(),
+            'stokMenipis'          => $this->getStokMenipis(),
+            'jadwalKembali'        => $this->getJadwalKembali(),
         ];
+
+        return view('dashboard.operator', $data);
     }
 
-    private function getUserData($user)
+    private function userDashboard()
     {
+        $user = auth()->user();
+
         $userPeminjaman = Peminjaman::where('user_id', $user->id)->get();
-        
-        return [
-            'peminjamanAktif' => $userPeminjaman->whereIn('status', ['dipinjam', 'terlambat'])->count(),
-            'totalPeminjaman' => $userPeminjaman->count(),
+
+        if ($userPeminjaman->isEmpty()) {
+            $peminjamIds = Peminjam::where('created_by', $user->id)->pluck('id');
+            if ($peminjamIds->count() > 0) {
+                $userPeminjaman = Peminjaman::whereIn('peminjam_id', $peminjamIds)->get();
+            }
+        }
+
+        $data = [
+            'peminjamanAktif'   => $userPeminjaman->whereIn('status', ['dipinjam', 'terlambat'])->count(),
+            'totalPeminjaman'   => $userPeminjaman->count(),
             'peminjamanSelesai' => $userPeminjaman->where('status', 'dikembalikan')->count(),
-            'peminjamanTerlambat' => $userPeminjaman->where('status', 'terlambat')->count(),
-            'riwayatPeminjaman' => $userPeminjaman->sortByDesc('created_at')->take(5),
-            'barangFavorit' => $this->getUserFavoriteItems($user->id),
+            'peminjamanTerlambat'=> $userPeminjaman->where('status', 'terlambat')->count(),
+            'riwayatPeminjaman' => $userPeminjaman->sortByDesc('created_at'),
+            'barangFavorit'     => $this->getUserFavoriteItems($user->id),
         ];
+
+        return view('dashboard.user', $data);
     }
 
-    private function getMonthlyRevenue()
+    // ================= Helper Methods =================
+
+    private function getPendapatanBulanIni()
+    {
+        return TransaksiKeuangan::where('jenis_transaksi', 'masuk')
+            ->whereMonth('tanggal_transaksi', Carbon::now()->month)
+            ->whereYear('tanggal_transaksi', Carbon::now()->year)
+            ->sum('jumlah');
+    }
+
+    private function getPengeluaranBulanIni()
+    {
+        return TransaksiKeuangan::where('jenis_transaksi', 'keluar')
+            ->whereMonth('tanggal_transaksi', Carbon::now()->month)
+            ->whereYear('tanggal_transaksi', Carbon::now()->year)
+            ->sum('jumlah');
+    }
+
+    private function getPendapatanBulanan()
     {
         $pendapatanBulanan = [];
         for ($i = 5; $i >= 0; $i--) {
@@ -103,64 +118,47 @@ class DashboardController extends Controller
                 ->whereMonth('tanggal_transaksi', $bulan->month)
                 ->whereYear('tanggal_transaksi', $bulan->year)
                 ->sum('jumlah');
-            
+
             $pendapatanBulanan[] = [
-                'bulan' => $bulan->format('M Y'),
+                'bulan'      => $bulan->format('M Y'),
                 'pendapatan' => $pendapatan
             ];
         }
         return $pendapatanBulanan;
     }
 
-    private function getMostPopularItems($limit = 10)
+    private function getBarangPopuler($limit = 10)
     {
-        try {
-            return DB::table('detail_peminjamans')
-                ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
-                ->select('barangs.nama_barang', DB::raw('SUM(detail_peminjamans.jumlah) as total_dipinjam'))
-                ->groupBy('barangs.id', 'barangs.nama_barang')
-                ->orderBy('total_dipinjam', 'desc')
-                ->limit($limit)
-                ->get();
-        } catch (\Exception $e) {
+        if (!Schema::hasTable('detail_peminjamans')) {
             return collect();
         }
+
+        return DB::table('detail_peminjamans')
+            ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
+            ->select('barangs.nama_barang', DB::raw('SUM(detail_peminjamans.jumlah) as total_dipinjam'))
+            ->groupBy('barangs.id', 'barangs.nama_barang')
+            ->orderByDesc('total_dipinjam')
+            ->limit($limit)
+            ->get();
     }
 
-    private function getUserFavoriteItems($userId)
+    private function getPeminjamanTerlambat()
     {
-        try {
-            return DB::table('detail_peminjamans')
-                ->join('peminjamans', 'detail_peminjamans.peminjaman_id', '=', 'peminjamans.id')
-                ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
-                ->where('peminjamans.user_id', $userId)
-                ->select('barangs.nama_barang', DB::raw('COUNT(*) as frequency'))
-                ->groupBy('barangs.id', 'barangs.nama_barang')
-                ->orderBy('frequency', 'desc')
-                ->limit(5)
-                ->get();
-        } catch (\Exception $e) {
-            return collect();
-        }
+        return Peminjaman::with('peminjam')
+            ->where('status', 'terlambat')
+            ->orWhere(function ($query) {
+                $query->where('status', 'dipinjam')
+                      ->where('tanggal_kembali_rencana', '<', Carbon::now());
+            })
+            ->latest()
+            ->limit(10)
+            ->get();
     }
 
-    private function getOverdueRentals()
-    {
-        try {
-            return Peminjaman::with('peminjam')
-                ->where('status', 'dipinjam')
-                ->where('tanggal_kembali_rencana', '<', Carbon::now())
-                ->latest()
-                ->limit(5)
-                ->get();
-        } catch (\Exception $e) {
-            return collect();
-        }
-    }
-
-    private function getLowStockItems()
+    private function getStokMenipis()
     {
         return Barang::where('stok_tersedia', '<=', 3)
+            ->where('stok_tersedia', '>', 0)
             ->where('status', 'aktif')
             ->with('kategori')
             ->orderBy('stok_tersedia')
@@ -168,15 +166,7 @@ class DashboardController extends Controller
             ->get();
     }
 
-    private function getRecentTransactions()
-    {
-        return TransaksiKeuangan::with('peminjaman.peminjam')
-            ->latest('tanggal_transaksi')
-            ->limit(5)
-            ->get();
-    }
-
-    private function getUpcomingReturns()
+    private function getJadwalKembali()
     {
         return Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
             ->where('status', 'dipinjam')
@@ -184,5 +174,35 @@ class DashboardController extends Controller
             ->orderBy('tanggal_kembali_rencana')
             ->limit(10)
             ->get();
+    }
+
+    private function getUserFavoriteItems($userId)
+    {
+        $favoriteItems = DB::table('detail_peminjamans')
+            ->join('peminjamans', 'detail_peminjamans.peminjaman_id', '=', 'peminjamans.id')
+            ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
+            ->where('peminjamans.user_id', $userId)
+            ->select('barangs.nama_barang', DB::raw('COUNT(*) as frequency'))
+            ->groupBy('barangs.id', 'barangs.nama_barang')
+            ->orderByDesc('frequency')
+            ->limit(5)
+            ->get();
+
+        if ($favoriteItems->isEmpty()) {
+            $peminjamIds = Peminjam::where('created_by', $userId)->pluck('id');
+            if ($peminjamIds->count() > 0) {
+                $favoriteItems = DB::table('detail_peminjamans')
+                    ->join('peminjamans', 'detail_peminjamans.peminjaman_id', '=', 'peminjamans.id')
+                    ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
+                    ->whereIn('peminjamans.peminjam_id', $peminjamIds)
+                    ->select('barangs.nama_barang', DB::raw('COUNT(*) as frequency'))
+                    ->groupBy('barangs.id', 'barangs.nama_barang')
+                    ->orderByDesc('frequency')
+                    ->limit(5)
+                    ->get();
+            }
+        }
+
+        return $favoriteItems;
     }
 }

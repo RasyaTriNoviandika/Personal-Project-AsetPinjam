@@ -1,4 +1,6 @@
 <?php
+// app/Policies/PeminjamanPolicy.php
+
 namespace App\Policies;
 
 use App\Models\User;
@@ -10,17 +12,20 @@ class PeminjamanPolicy
     use HandlesAuthorization;
 
     /**
+     * Determine whether the user can view any models.
+     */
+    public function viewAny(User $user)
+    {
+        return true; // All authenticated users can view listings
+    }
+
+    /**
      * Determine whether the user can view the model.
      */
     public function view(User $user, Peminjaman $peminjaman)
     {
-        // Admin dan operator bisa lihat semua
-        if (in_array($user->role, ['admin', 'operator'])) {
-            return true;
-        }
-
-        // User hanya bisa lihat peminjaman sendiri
-        return $user->id === $peminjaman->user_id;
+        // Admin and operator can view all, users can only view their own
+        return $user->hasAnyRole(['admin', 'operator']) || $peminjaman->user_id === $user->id;
     }
 
     /**
@@ -28,8 +33,7 @@ class PeminjamanPolicy
      */
     public function create(User $user)
     {
-        // Semua role bisa buat peminjaman
-        return true;
+        return $user->hasAnyRole(['admin', 'operator']);
     }
 
     /**
@@ -37,8 +41,7 @@ class PeminjamanPolicy
      */
     public function update(User $user, Peminjaman $peminjaman)
     {
-        // Hanya admin dan operator yang bisa update
-        return in_array($user->role, ['admin', 'operator']);
+        return $user->hasAnyRole(['admin', 'operator']);
     }
 
     /**
@@ -46,7 +49,14 @@ class PeminjamanPolicy
      */
     public function delete(User $user, Peminjaman $peminjaman)
     {
-        // Hanya admin yang bisa delete
-        return $user->role === 'admin';
+        return $user->isAdmin();
+    }
+
+    /**
+     * Determine whether the user can process returns.
+     */
+    public function processReturn(User $user, Peminjaman $peminjaman)
+    {
+        return $user->hasAnyRole(['admin', 'operator']);
     }
 }
