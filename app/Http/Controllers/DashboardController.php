@@ -44,6 +44,7 @@ class DashboardController extends Controller
             'barangPopuler'          => $this->getBarangPopuler(10),
             'peminjamanTerlambat'    => $this->getPeminjamanTerlambat(),
             'stokMenipis'            => $this->getStokMenipis(),
+            'transaksiTerakhir'      => $this->getTransaksiTerakhir(),
         ];
 
         return view('dashboard.admin', $data);
@@ -61,6 +62,7 @@ class DashboardController extends Controller
             'peminjamanTerlambat'  => $this->getPeminjamanTerlambat(),
             'stokMenipis'          => $this->getStokMenipis(),
             'jadwalKembali'        => $this->getJadwalKembali(),
+            'statistikBulanan'     => $this->getStatistikPeminjamanBulanan(),
         ];
 
         return view('dashboard.operator', $data);
@@ -70,8 +72,10 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
+        // Ambil peminjaman berdasarkan user_id
         $userPeminjaman = Peminjaman::where('user_id', $user->id)->get();
 
+        // Jika tidak ada, coba cari berdasarkan peminjam yang dibuat user
         if ($userPeminjaman->isEmpty()) {
             $peminjamIds = Peminjam::where('created_by', $user->id)->pluck('id');
             if ($peminjamIds->count() > 0) {
@@ -84,8 +88,15 @@ class DashboardController extends Controller
             'totalPeminjaman'   => $userPeminjaman->count(),
             'peminjamanSelesai' => $userPeminjaman->where('status', 'dikembalikan')->count(),
             'peminjamanTerlambat'=> $userPeminjaman->where('status', 'terlambat')->count(),
-            'riwayatPeminjaman' => $userPeminjaman->sortByDesc('created_at'),
-            'barangFavorit'     => $this->getUserFavoriteItems($user->id),
+            'riwayatPeminjaman' => $userPeminjaman->sortByDesc('created_at')->take(5),
+            'barangTersedia'    => Barang::where('status', 'aktif')->where('stok_tersedia', '>', 0)->count(),
+            'kategoriTersedia'  => DB::table('barangs')
+                ->join('kategori_barangs', 'barangs.kategori_id', '=', 'kategori_barangs.id')
+                ->where('barangs.status', 'aktif')
+                ->where('barangs.stok_tersedia', '>', 0)
+                ->distinct('kategori_barangs.id')
+                ->count(),
+            'peminjamanMendatang' => $this->getUserUpcomingReturns($user->id),
         ];
 
         return view('dashboard.user', $data);
@@ -125,6 +136,23 @@ class DashboardController extends Controller
             ];
         }
         return $pendapatanBulanan;
+    }
+
+    private function getStatistikPeminjamanBulanan()
+    {
+        $statistik = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $bulan = Carbon::now()->subMonths($i);
+            $jumlah = Peminjaman::whereMonth('tanggal_pinjam', $bulan->month)
+                ->whereYear('tanggal_pinjam', $bulan->year)
+                ->count();
+
+            $statistik[] = [
+                'bulan' => $bulan->format('M Y'),
+                'jumlah' => $jumlah
+            ];
+        }
+        return $statistik;
     }
 
     private function getBarangPopuler($limit = 10)
@@ -176,33 +204,21 @@ class DashboardController extends Controller
             ->get();
     }
 
-    private function getUserFavoriteItems($userId)
+    private function getTransaksiTerakhir()
     {
-        $favoriteItems = DB::table('detail_peminjamans')
-            ->join('peminjamans', 'detail_peminjamans.peminjaman_id', '=', 'peminjamans.id')
-            ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
-            ->where('peminjamans.user_id', $userId)
-            ->select('barangs.nama_barang', DB::raw('COUNT(*) as frequency'))
-            ->groupBy('barangs.id', 'barangs.nama_barang')
-            ->orderByDesc('frequency')
+        return TransaksiKeuangan::with('peminjaman.peminjam')
+            ->latest('tanggal_transaksi')
             ->limit(5)
             ->get();
+    }
 
-        if ($favoriteItems->isEmpty()) {
-            $peminjamIds = Peminjam::where('created_by', $userId)->pluck('id');
-            if ($peminjamIds->count() > 0) {
-                $favoriteItems = DB::table('detail_peminjamans')
-                    ->join('peminjamans', 'detail_peminjamans.peminjaman_id', '=', 'peminjamans.id')
-                    ->join('barangs', 'detail_peminjamans.barang_id', '=', 'barangs.id')
-                    ->whereIn('peminjamans.peminjam_id', $peminjamIds)
-                    ->select('barangs.nama_barang', DB::raw('COUNT(*) as frequency'))
-                    ->groupBy('barangs.id', 'barangs.nama_barang')
-                    ->orderByDesc('frequency')
-                    ->limit(5)
-                    ->get();
-            }
-        }
-
-        return $favoriteItems;
+    private function getUserUpcomingReturns($userId)
+    {
+        return Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
+            ->where('user_id', $userId)
+            ->where('status', 'dipinjam')
+            ->whereBetween('tanggal_kembali_rencana', [Carbon::today(), Carbon::today()->addDays(7)])
+            ->orderBy('tanggal_kembali_rencana')
+            ->get();
     }
 }

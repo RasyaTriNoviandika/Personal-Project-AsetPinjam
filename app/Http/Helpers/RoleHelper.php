@@ -10,41 +10,41 @@ class RoleHelper
         $menus = [
             'admin' => [
                 'dashboard' => ['Dashboard', 'fas fa-tachometer-alt', 'dashboard'],
-                'divider_1' => 'MANAJEMEN DATA',
+                'divider_1' => 'MANAJEMEN MASTER',
+                'users' => ['Manajemen User', 'fas fa-user-cog', 'users.index'],
                 'barang' => ['Data Barang', 'fas fa-box', 'barang.index'],
                 'kategori-barang' => ['Kategori Barang', 'fas fa-tags', 'kategori-barang.index'],
                 'peminjam' => ['Data Peminjam', 'fas fa-users', 'peminjam.index'],
-                'divider_2' => 'TRANSAKSI',
-                'peminjaman' => ['Peminjaman', 'fas fa-handshake', 'peminjaman.index'],
+                'divider_2' => 'KEUANGAN & TRANSAKSI',
                 'transaksi-keuangan' => ['Transaksi Keuangan', 'fas fa-money-bill', 'transaksi-keuangan.index'],
-                'divider_3' => 'LAPORAN',
+                'peminjaman' => ['Peminjaman', 'fas fa-handshake', 'peminjaman.index'],
+                'divider_3' => 'LAPORAN & ANALISIS',
                 'laporan' => ['Laporan', 'fas fa-chart-bar', 'laporan.index'],
-                'divider_4' => 'SISTEM',
-                'users' => ['Manajemen User', 'fas fa-user-cog', 'users.index'],
+                'divider_4' => 'PENGATURAN',
                 'settings' => ['Pengaturan', 'fas fa-cog', 'settings.profile'],
             ],
             
             'operator' => [
                 'dashboard' => ['Dashboard', 'fas fa-tachometer-alt', 'dashboard'],
-                'divider_1' => 'MANAJEMEN DATA',
-                'barang' => ['Data Barang', 'fas fa-box', 'barang.index'],
-                'kategori-barang' => ['Kategori Barang', 'fas fa-tags', 'kategori-barang.index'],
-                'peminjam' => ['Data Peminjam', 'fas fa-users', 'peminjam.index'],
-                'divider_2' => 'TRANSAKSI',
+                'divider_1' => 'OPERASIONAL',
                 'peminjaman' => ['Peminjaman', 'fas fa-handshake', 'peminjaman.index'],
-                'transaksi-keuangan' => ['Transaksi Keuangan', 'fas fa-money-bill', 'transaksi-keuangan.index'],
-                'divider_3' => 'LAPORAN',
-                'laporan' => ['Laporan', 'fas fa-chart-bar', 'laporan.index'],
-                'divider_4' => 'PENGATURAN',
+                'barang' => ['Data Barang', 'fas fa-box', 'barang.index'],
+                'peminjam' => ['Data Peminjam', 'fas fa-users', 'peminjam.index'],
+                'divider_2' => 'MASTER DATA',
+                'kategori-barang' => ['Kategori Barang', 'fas fa-tags', 'kategori-barang.index'],
+                'divider_3' => 'LAPORAN OPERASIONAL',
+                'laporan-peminjaman' => ['Laporan Peminjaman', 'fas fa-chart-line', 'laporan.peminjaman'],
+                'laporan-barang' => ['Laporan Barang', 'fas fa-boxes', 'laporan.barang'],
+                'divider_4' => 'PROFIL',
                 'settings' => ['Profil Saya', 'fas fa-user', 'settings.profile'],
             ],
             
             'user' => [
                 'dashboard' => ['Dashboard', 'fas fa-tachometer-alt', 'dashboard'],
-                'divider_1' => 'SEWA BARANG',
-                'barang' => ['Lihat Barang', 'fas fa-box', 'barang.index'],
-                'my-peminjaman' => ['Riwayat Sewa', 'fas fa-history', 'peminjaman.user'],
-                'divider_2' => 'PROFIL',
+                'divider_1' => 'PENYEWAAN',
+                'barang' => ['Katalog Barang', 'fas fa-search', 'barang.index'],
+                'my-peminjaman' => ['Riwayat Sewa Saya', 'fas fa-history', 'peminjaman.user'],
+                'divider_2' => 'AKUN',
                 'settings' => ['Profil Saya', 'fas fa-user', 'settings.profile'],
             ]
         ];
@@ -56,14 +56,17 @@ class RoleHelper
     {
         $permissions = [
             'admin' => [
-                'create', 'read', 'update', 'delete', 'manage_users', 'view_reports', 
-                'export_data', 'manage_finances', 'system_settings'
+                'create', 'read', 'update', 'delete', 
+                'manage_users', 'manage_finances', 'view_all_reports', 
+                'export_data', 'system_settings', 'delete_records'
             ],
             'operator' => [
-                'create', 'read', 'update', 'view_reports', 'export_data', 'manage_finances'
+                'create', 'read', 'update', 
+                'manage_inventory', 'manage_rentals', 'view_operational_reports',
+                'export_operational_data', 'manage_borrowers'
             ],
             'user' => [
-                'read', 'view_own', 'rent_items'
+                'read', 'view_own', 'rent_items', 'view_catalog'
             ]
         ];
 
@@ -86,38 +89,37 @@ class RoleHelper
         $names = [
             'admin' => 'Administrator',
             'operator' => 'Operator',
-            'user' => 'Pengguna'
+            'user' => 'User'
         ];
 
         return $names[$role] ?? 'Unknown';
     }
 
-    public static function getRolePermissions($role)
+    public static function canViewFinancialData($role)
     {
-        $permissions = [
-            'admin' => [
-                'Mengelola semua data',
-                'Mengelola user',
-                'Melihat laporan keuangan',
-                'Export data',
-                'Menghapus data',
-                'Pengaturan sistem'
-            ],
-            'operator' => [
-                'Mengelola barang',
-                'Mengelola peminjaman',
-                'Mengelola transaksi',
-                'Melihat laporan',
-                'Export data'
-            ],
-            'user' => [
-                'Melihat barang',
-                'Menyewa barang',
-                'Melihat riwayat sewa',
-                'Mengelola profil'
-            ]
-        ];
+        return $role === 'admin';
+    }
 
-        return $permissions[$role] ?? [];
+    public static function canManageUsers($role)
+    {
+        return $role === 'admin';
+    }
+
+    public static function canDeleteData($role)
+    {
+        return $role === 'admin';
+    }
+
+    public static function canExportData($role, $type = 'operational')
+    {
+        if ($role === 'admin') {
+            return true;
+        }
+        
+        if ($role === 'operator' && $type === 'operational') {
+            return true;
+        }
+
+        return false;
     }
 }

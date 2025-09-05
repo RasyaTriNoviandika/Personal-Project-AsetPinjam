@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class RoleMiddleware
 {
@@ -18,20 +19,22 @@ class RoleMiddleware
      */
     public function handle(Request $request, Closure $next, ...$roles)
     {
-        if (!auth()->check()) {
+        // Check if user is authenticated
+        if (!Auth::check()) {
             return redirect()->route('login');
         }
 
-        $user = auth()->user();
-        
-        // Check if user has role
-        if (!$user->role) {
-            abort(403, 'No role assigned to your account. Please contact administrator.');
+        $user = Auth::user();
+
+        // Check if user is active
+        if (!$user->isActive()) {
+            Auth::logout();
+            return redirect()->route('login')->with('error', 'Your account is inactive. Please contact administrator.');
         }
 
-        // Check if user's role is in allowed roles
-        if (!in_array($user->role, $roles)) {
-            abort(403, 'You do not have permission to access this resource.');
+        // Check if user has required role
+        if (!empty($roles) && !$user->hasAnyRole($roles)) {
+            abort(403, 'Unauthorized. You do not have permission to access this resource.');
         }
 
         return $next($request);
