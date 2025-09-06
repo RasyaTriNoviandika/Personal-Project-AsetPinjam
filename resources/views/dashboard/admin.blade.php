@@ -3,81 +3,110 @@
 @section('title', 'Dashboard Admin')
 
 @section('content')
-{{-- Admin Header --}}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2"><i class="fas fa-tachometer-alt me-2"></i>Dashboard Admin</h1>
+<!-- Page Header -->
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+    <div>
+        <h1 class="h2 text-gray-800">
+            <i class="fas fa-tachometer-alt text-primary me-2"></i>Dashboard Admin
+        </h1>
+        <p class="text-muted mb-0">Selamat datang kembali, {{ auth()->user()->name }}!</p>
+    </div>
     <div class="btn-toolbar mb-2 mb-md-0">
         <div class="btn-group me-2">
-            <a href="{{ route('users.index') }}" class="btn btn-sm btn-outline-primary">
+            <a href="{{ route('users.index') }}" class="btn btn-outline-primary btn-sm">
                 <i class="fas fa-users me-1"></i>Kelola User
             </a>
-            <a href="{{ route('laporan.index') }}" class="btn btn-sm btn-outline-success">
+            <a href="{{ route('laporan.index') }}" class="btn btn-outline-success btn-sm">
                 <i class="fas fa-chart-bar me-1"></i>Laporan
             </a>
         </div>
     </div>
 </div>
 
-{{-- Admin Stats Cards --}}
-<div class="row">
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-primary shadow h-100 py-2">
+<!-- Stats Cards Row -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm border-left-primary h-100">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Users</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalUsers }}</div>
+                    <div class="col me-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Users
+                        </div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800">
+                            {{ number_format($totalUsers) }}
+                        </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                        <div class="icon-circle bg-primary">
+                            <i class="fas fa-users text-white"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-success shadow h-100 py-2">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm border-left-success h-100">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Barang</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalBarang }}</div>
+                    <div class="col me-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Total Barang
+                        </div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800">
+                            {{ number_format($totalBarang) }}
+                        </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                        <div class="icon-circle bg-success">
+                            <i class="fas fa-boxes text-white"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-info shadow h-100 py-2">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm border-left-info h-100">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Peminjaman Aktif</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ $totalPeminjamanAktif }}</div>
+                    <div class="col me-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Peminjaman Aktif
+                        </div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800">
+                            {{ number_format($totalPeminjamanAktif) }}
+                        </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-exchange-alt fa-2x text-gray-300"></i>
+                        <div class="icon-circle bg-info">
+                            <i class="fas fa-exchange-alt text-white"></i>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="col-xl-3 col-md-6 mb-4">
-        <div class="card border-left-warning shadow h-100 py-2">
+    <div class="col-xl-3 col-md-6">
+        <div class="card border-0 shadow-sm border-left-warning h-100">
             <div class="card-body">
                 <div class="row no-gutters align-items-center">
-                    <div class="col mr-2">
-                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Pendapatan Bulan Ini</div>
-                        <div class="h5 mb-0 font-weight-bold text-gray-800">Rp {{ number_format($totalPendapatanBulanIni) }}</div>
+                    <div class="col me-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Pendapatan Bulan Ini
+                        </div>
+                        <div class="h4 mb-0 font-weight-bold text-gray-800">
+                            Rp {{ number_format($totalPendapatanBulanIni, 0, ',', '.') }}
+                        </div>
                     </div>
                     <div class="col-auto">
-                        <i class="fas fa-money-bill-wave fa-2x text-gray-300"></i>
+                        <div class="icon-circle bg-warning">
+                            <i class="fas fa-money-bill-wave text-white"></i>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -85,47 +114,84 @@
     </div>
 </div>
 
-{{-- Financial Overview Row --}}
-<div class="row">
+<!-- Main Content Row -->
+<div class="row g-4">
+    <!-- Chart Section -->
     <div class="col-xl-8 col-lg-7">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
-                <h6 class="m-0 font-weight-bold text-primary">Pendapatan 6 Bulan Terakhir</h6>
-                <a href="{{ route('laporan.keuangan') }}" class="btn btn-sm btn-outline-primary">Detail Laporan</a>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-chart-line me-2"></i>Pendapatan 6 Bulan Terakhir
+                </h6>
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                    <div class="dropdown-menu">
+                        <a class="dropdown-item" href="{{ route('export.transaksi') }}">
+                            <i class="fas fa-file-excel me-2"></i>Excel
+                        </a>
+                        <a class="dropdown-item" href="{{ route('laporan.keuangan') }}">
+                            <i class="fas fa-file-pdf me-2"></i>Detail Report
+                        </a>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
-                <div class="chart-area">
-                    <canvas id="pendapatanChart" style="height: 300px;"></canvas>
+                <div class="chart-container position-relative" style="height: 300px;">
+                    <canvas id="pendapatanChart"></canvas>
                 </div>
-                <hr>
+                <hr class="my-4">
                 <div class="row text-center">
                     <div class="col-md-4">
-                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Pendapatan</div>
-                        <div class="h6 mb-0 font-weight-bold text-success">Rp {{ number_format($totalPendapatanBulanIni) }}</div>
+                        <div class="border-end">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Pendapatan
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-success">
+                                Rp {{ number_format($totalPendapatanBulanIni, 0, ',', '.') }}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">Total Pengeluaran</div>
-                        <div class="h6 mb-0 font-weight-bold text-danger">Rp {{ number_format($totalPengeluaranBulanIni) }}</div>
+                        <div class="border-end">
+                            <div class="text-xs font-weight-bold text-danger text-uppercase mb-1">
+                                Total Pengeluaran
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-danger">
+                                Rp {{ number_format($totalPengeluaranBulanIni, 0, ',', '.') }}
+                            </div>
+                        </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Profit Bersih</div>
-                        <div class="h6 mb-0 font-weight-bold text-info">Rp {{ number_format($totalPendapatanBulanIni - $totalPengeluaranBulanIni) }}</div>
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Profit Bersih
+                        </div>
+                        <div class="h5 mb-0 font-weight-bold text-primary">
+                            Rp {{ number_format($totalPendapatanBulanIni - $totalPengeluaranBulanIni, 0, ',', '.') }}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Recent Transactions -->
     <div class="col-xl-4 col-lg-5">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Transaksi Terakhir</h6>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-clock me-2"></i>Transaksi Terakhir
+                </h6>
+                <a href="{{ route('transaksi-keuangan.index') }}" class="btn btn-sm btn-outline-primary">
+                    Lihat Semua
+                </a>
             </div>
-            <div class="card-body" style="max-height: 350px; overflow-y: auto;">
+            <div class="card-body p-0" style="max-height: 350px; overflow-y: auto;">
                 @if($transaksiTerakhir->count() > 0)
                     @foreach($transaksiTerakhir as $transaksi)
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="mr-3">
+                    <div class="d-flex align-items-center p-3 border-bottom">
+                        <div class="me-3">
                             @if($transaksi->jenis_transaksi == 'masuk')
                                 <div class="icon-circle bg-success">
                                     <i class="fas fa-arrow-up text-white"></i>
@@ -136,217 +202,260 @@
                                 </div>
                             @endif
                         </div>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-1">{{ ucfirst($transaksi->kategori) }}</h6>
-                            <small class="text-muted">{{ $transaksi->deskripsi }}</small>
-                            <div class="small text-muted">{{ $transaksi->tanggal_transaksi->format('d M Y') }}</div>
+                        <div class="flex-grow-1 min-width-0">
+                            <h6 class="mb-1 text-truncate">{{ ucfirst($transaksi->kategori) }}</h6>
+                            <p class="mb-1 small text-muted text-truncate">{{ $transaksi->deskripsi }}</p>
+                            <div class="small text-muted">
+                                {{ $transaksi->tanggal_transaksi->format('d M Y') }}
+                            </div>
                         </div>
-                        <div class="text-right">
+                        <div class="text-end">
                             <span class="font-weight-bold {{ $transaksi->jenis_transaksi == 'masuk' ? 'text-success' : 'text-danger' }}">
-                                {{ $transaksi->jenis_transaksi == 'masuk' ? '+' : '-' }}Rp {{ number_format($transaksi->jumlah) }}
+                                {{ $transaksi->jenis_transaksi == 'masuk' ? '+' : '-' }}Rp {{ number_format($transaksi->jumlah, 0, ',', '.') }}
                             </span>
                         </div>
                     </div>
                     @endforeach
-                    <div class="text-center">
-                        <a href="{{ route('transaksi-keuangan.index') }}" class="btn btn-sm btn-outline-primary">Lihat Semua</a>
-                    </div>
                 @else
-                    <p class="text-muted mb-0">Belum ada transaksi</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3"></i>
+                        <p class="text-muted mb-0">Belum ada transaksi</p>
+                    </div>
                 @endif
             </div>
         </div>
     </div>
 </div>
 
-{{-- Management Tables Row --}}
-<div class="row">
-    <div class="col-lg-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header py-3">
+<!-- Management Tables Row -->
+<div class="row g-4 mt-4">
+    <!-- Late Returns -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
                 <h6 class="m-0 font-weight-bold text-warning">
-                    <i class="fas fa-exclamation-triangle me-2"></i>Peminjaman Terlambat
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Peminjaman Terlambat 
+                    @if($peminjamanTerlambat->count() > 0)
+                        <span class="badge bg-warning ms-2">{{ $peminjamanTerlambat->count() }}</span>
+                    @endif
                 </h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 @if($peminjamanTerlambat->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Kode</th>
-                                    <th>Peminjam</th>
-                                    <th>Terlambat</th>
-                                    <th>Status</th>
+                                    <th class="border-0">Kode</th>
+                                    <th class="border-0">Peminjam</th>
+                                    <th class="border-0">Terlambat</th>
+                                    <th class="border-0">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($peminjamanTerlambat->take(5) as $pinjam)
                                 <tr>
-                                    <td>{{ $pinjam->kode_peminjaman }}</td>
-                                    <td>{{ $pinjam->peminjam->nama_peminjam }}</td>
-                                    <td>
+                                    <td class="align-middle">
+                                        <small class="font-monospace">{{ $pinjam->kode_peminjaman }}</small>
+                                    </td>
+                                    <td class="align-middle">{{ $pinjam->peminjam->nama_peminjam }}</td>
+                                    <td class="align-middle">
                                         <span class="badge bg-danger">
                                             {{ \Carbon\Carbon::now()->diffInDays($pinjam->tanggal_kembali_rencana) }} hari
                                         </span>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-warning">{{ ucfirst($pinjam->status) }}</span>
+                                    <td class="align-middle">
+                                        <a href="{{ route('peminjaman.show', $pinjam->id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center mt-2">
-                        <a href="{{ route('peminjaman.index') }}?status=terlambat" class="btn btn-sm btn-outline-warning">Lihat Semua</a>
+                    <div class="p-3 bg-light text-center">
+                        <a href="{{ route('peminjaman.index') }}?status=terlambat" class="btn btn-warning btn-sm">
+                            <i class="fas fa-list me-1"></i>Lihat Semua Terlambat
+                        </a>
                     </div>
                 @else
-                    <p class="text-muted mb-0">Tidak ada peminjaman terlambat</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <p class="text-muted mb-0">Tidak ada peminjaman terlambat</p>
+                    </div>
                 @endif
             </div>
         </div>
     </div>
 
-    <div class="col-lg-6 mb-4">
-        <div class="card shadow">
-            <div class="card-header py-3">
+    <!-- Low Stock Items -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
                 <h6 class="m-0 font-weight-bold text-info">
-                    <i class="fas fa-boxes me-2"></i>Stok Menipis
+                    <i class="fas fa-boxes me-2"></i>
+                    Stok Menipis
+                    @if($stokMenipis->count() > 0)
+                        <span class="badge bg-info ms-2">{{ $stokMenipis->count() }}</span>
+                    @endif
                 </h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 @if($stokMenipis->count() > 0)
                     <div class="table-responsive">
-                        <table class="table table-sm">
-                            <thead>
+                        <table class="table table-hover mb-0">
+                            <thead class="bg-light">
                                 <tr>
-                                    <th>Barang</th>
-                                    <th>Kategori</th>
-                                    <th>Stok</th>
-                                    <th>Status</th>
+                                    <th class="border-0">Barang</th>
+                                    <th class="border-0">Kategori</th>
+                                    <th class="border-0">Stok</th>
+                                    <th class="border-0">Aksi</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($stokMenipis->take(5) as $barang)
                                 <tr>
-                                    <td>{{ $barang->nama_barang }}</td>
-                                    <td>{{ $barang->kategori->nama_kategori ?? '-' }}</td>
-                                    <td>
+                                    <td class="align-middle">{{ $barang->nama_barang }}</td>
+                                    <td class="align-middle">
+                                        <span class="badge bg-secondary">{{ $barang->kategori->nama_kategori ?? '-' }}</span>
+                                    </td>
+                                    <td class="align-middle">
                                         <span class="badge {{ $barang->stok_tersedia <= 1 ? 'bg-danger' : 'bg-warning' }}">
                                             {{ $barang->stok_tersedia }}/{{ $barang->stok_total }}
                                         </span>
                                     </td>
-                                    <td>
-                                        <span class="badge bg-primary">{{ ucfirst($barang->status) }}</span>
+                                    <td class="align-middle">
+                                        <a href="{{ route('barang.edit', $barang->id) }}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
                                     </td>
                                 </tr>
                                 @endforeach
                             </tbody>
                         </table>
                     </div>
-                    <div class="text-center mt-2">
-                        <a href="{{ route('barang.index') }}" class="btn btn-sm btn-outline-info">Lihat Semua</a>
+                    <div class="p-3 bg-light text-center">
+                        <a href="{{ route('barang.index') }}" class="btn btn-info btn-sm">
+                            <i class="fas fa-boxes me-1"></i>Kelola Stok Barang
+                        </a>
                     </div>
                 @else
-                    <p class="text-muted mb-0">Semua barang stoknya aman</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <p class="text-muted mb-0">Semua barang stoknya aman</p>
+                    </div>
                 @endif
             </div>
         </div>
     </div>
 </div>
 
-{{-- Popular Items Row --}}
-<div class="row">
+<!-- Popular Items Section -->
+@if($barangPopuler->count() > 0)
+<div class="row mt-4">
     <div class="col-12">
-        <div class="card shadow mb-4">
-            <div class="card-header py-3">
-                <h6 class="m-0 font-weight-bold text-primary">Barang Paling Populer</h6>
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom py-3">
+                <h6 class="m-0 font-weight-bold text-primary">
+                    <i class="fas fa-trophy me-2"></i>Barang Paling Populer
+                </h6>
             </div>
             <div class="card-body">
-                @if($barangPopuler->count() > 0)
-                    <div class="row">
-                        @foreach($barangPopuler as $barang)
-                        <div class="col-lg-4 col-md-6 mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-0">{{ $barang->nama_barang }}</h6>
-                                    <small class="text-muted">{{ $barang->total_dipinjam }} kali dipinjam</small>
+                <div class="row g-3">
+                    @foreach($barangPopuler as $index => $barang)
+                    <div class="col-lg-4 col-md-6">
+                        <div class="d-flex align-items-center p-3 bg-light rounded">
+                            <div class="me-3">
+                                <div class="icon-circle {{ $index == 0 ? 'bg-warning' : ($index == 1 ? 'bg-info' : 'bg-secondary') }}">
+                                    <span class="text-white font-weight-bold">{{ $index + 1 }}</span>
                                 </div>
-                                <div class="progress ml-3" style="width: 80px; height: 8px;">
-                                    <div class="progress-bar bg-primary" style="width: {{ ($barang->total_dipinjam / $barangPopuler->max('total_dipinjam')) * 100 }}%"></div>
+                            </div>
+                            <div class="flex-grow-1 min-width-0">
+                                <h6 class="mb-1 text-truncate">{{ $barang->nama_barang }}</h6>
+                                <small class="text-muted">{{ $barang->total_dipinjam }} kali dipinjam</small>
+                            </div>
+                            <div class="ms-2">
+                                <div class="progress" style="width: 60px; height: 8px;">
+                                    <div class="progress-bar bg-primary" 
+                                         style="width: {{ ($barang->total_dipinjam / $barangPopuler->max('total_dipinjam')) * 100 }}%">
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        @endforeach
                     </div>
-                @else
-                    <p class="text-muted mb-0">Belum ada data peminjaman</p>
-                @endif
+                    @endforeach
+                </div>
             </div>
         </div>
     </div>
 </div>
+@endif
 @endsection
 
 @section('scripts')
-<style>
-.border-left-primary { border-left: 0.25rem solid #4e73df !important; }
-.border-left-success { border-left: 0.25rem solid #1cc88a !important; }
-.border-left-info { border-left: 0.25rem solid #36b9cc !important; }
-.border-left-warning { border-left: 0.25rem solid #f6c23e !important; }
-.icon-circle { width: 2.5rem; height: 2.5rem; border-radius: 100%; display: flex; align-items: center; justify-content: center; }
-</style>
-
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-// Chart Pendapatan Admin
-const ctx = document.getElementById('pendapatanChart').getContext('2d');
-const pendapatanData = @json($pendapatanBulanan);
+document.addEventListener('DOMContentLoaded', function() {
+    // Revenue Chart
+    const ctx = document.getElementById('pendapatanChart').getContext('2d');
+    const pendapatanData = @json($pendapatanBulanan);
 
-new Chart(ctx, {
-    type: 'line',
-    data: {
-        labels: pendapatanData.map(item => item.bulan),
-        datasets: [{
-            label: 'Pendapatan (Rp)',
-            data: pendapatanData.map(item => item.pendapatan),
-            borderColor: '#4e73df',
-            backgroundColor: 'rgba(78, 115, 223, 0.1)',
-            tension: 0.3,
-            fill: true,
-            pointBackgroundColor: '#4e73df',
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 4
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: { 
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    label: function(context) {
-                        return 'Rp ' + context.parsed.y.toLocaleString('id-ID');
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: pendapatanData.map(item => item.bulan),
+            datasets: [{
+                label: 'Pendapatan (Rp)',
+                data: pendapatanData.map(item => item.pendapatan),
+                borderColor: '#4e73df',
+                backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#4e73df',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Rp ' + context.parsed.y.toLocaleString('id-ID'); 
+                        }
                     }
                 }
-            }
-        },
-        scales: {
-            x: { grid: { display: false } },
-            y: { 
-                beginAtZero: true,
-                grid: { borderDash: [3,3] },
-                ticks: {
-                    callback: function(value) { 
-                        return 'Rp ' + value.toLocaleString('id-ID'); 
+            },
+            scales: {
+                x: { 
+                    grid: { display: false },
+                    ticks: { color: '#858796' }
+                },
+                y: { 
+                    beginAtZero: true,
+                    grid: { borderDash: [3,3], color: '#e3e6f0' },
+                    ticks: {
+                        color: '#858796',
+                        callback: function(value) { 
+                            return 'Rp ' + value.toLocaleString('id-ID'); 
+                        }
                     }
                 }
             }
         }
-    }
+    });
+
+    // Auto refresh data setiap 5 menit
+    setInterval(function() {
+        window.location.reload();
+    }, 300000);
 });
 </script>
 @endsection

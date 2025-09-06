@@ -41,8 +41,8 @@ class PeminjamanController extends Controller
 
         $peminjaman = $query->latest()->paginate(15);
 
-        // Update status peminjaman yang terlambat (only for admin/operator)
-        if ($user->hasAnyRole(['admin', 'operator'])) {
+        // Update status peminjaman yang terlambat (only for admin)
+        if ($user->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
             $this->updateStatusTerlambat();
         }
 
@@ -79,8 +79,8 @@ class PeminjamanController extends Controller
 
     public function create()
     {
-        // Only admin and operator can create
-        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+        // Only admin can create
+        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
             abort(403, 'Unauthorized');
         }
 
@@ -95,8 +95,8 @@ class PeminjamanController extends Controller
 
     public function store(Request $request)
     {
-        // Only admin and operator can create
-        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+        // Only admin can create
+        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
             abort(403, 'Unauthorized');
         }
 
@@ -163,7 +163,7 @@ class PeminjamanController extends Controller
             }
 
             // Buat transaksi keuangan (only if user has permission)
-            if (auth()->user()->hasAnyRole(['admin', 'operator'])) {
+            if (auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
                 TransaksiKeuangan::create([
                     'peminjaman_id' => $peminjaman->id,
                     'jenis_transaksi' => 'masuk',
@@ -201,8 +201,8 @@ class PeminjamanController extends Controller
 
     public function pengembalian(Peminjaman $peminjaman)
     {
-        // Only admin and operator can process returns
-        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+        // Only admin can process returns
+        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
             abort(403, 'Unauthorized');
         }
 
@@ -217,8 +217,8 @@ class PeminjamanController extends Controller
 
     public function prosesKembali(Request $request, Peminjaman $peminjaman)
     {
-        // Only admin and operator can process returns
-        if (!auth()->user()->hasAnyRole(['admin', 'operator'])) {
+        // Only admin can process returns
+        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
             abort(403, 'Unauthorized');
         }
 
@@ -269,8 +269,8 @@ class PeminjamanController extends Controller
                 }
             }
 
-            // Buat transaksi denda jika ada (only for admin/operator)
-            if ($totalDenda > 0 && auth()->user()->hasAnyRole(['admin', 'operator'])) {
+            // Buat transaksi denda jika ada (only for admin)
+            if ($totalDenda > 0 && auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
                 TransaksiKeuangan::create([
                     'peminjaman_id' => $peminjaman->id,
                     'jenis_transaksi' => 'masuk',

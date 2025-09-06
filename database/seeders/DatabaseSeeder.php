@@ -25,19 +25,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // Create operator user
-        User::firstOrCreate(
-            ['email' => 'operator@example.com'],
-            [
-                'name' => 'Operator',
-                'email' => 'operator@example.com',
-                'password' => Hash::make('password'),
-                'role' => 'operator',
-                'status' => 'active',
-                'email_verified_at' => now(),
-            ]
-        );
-
         // Create regular user
         User::firstOrCreate(
             ['email' => 'user@example.com'],

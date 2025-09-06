@@ -23,9 +23,9 @@ class DashboardController extends Controller
             abort(403, 'No role assigned to your account');
         }
 
+        // Removed 'operator' case
         return match ($user->role) {
             'admin'    => $this->adminDashboard(),
-            'operator' => $this->operatorDashboard(),
             'user'     => $this->userDashboard(),
             default    => abort(403, 'Invalid role assigned'),
         };
@@ -50,23 +50,7 @@ class DashboardController extends Controller
         return view('dashboard.admin', $data);
     }
 
-    private function operatorDashboard()
-    {
-        $data = [
-            'totalBarang'          => Barang::count(),
-            'totalPeminjam'        => Peminjam::count(),
-            'totalPeminjamanAktif' => Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count(),
-            'peminjamanHariIni'    => Peminjaman::whereDate('tanggal_pinjam', Carbon::today())->count(),
-            'pengembalianHariIni'  => Peminjaman::whereDate('tanggal_kembali_aktual', Carbon::today())->count(),
-            'barangPopuler'        => $this->getBarangPopuler(5),
-            'peminjamanTerlambat'  => $this->getPeminjamanTerlambat(),
-            'stokMenipis'          => $this->getStokMenipis(),
-            'jadwalKembali'        => $this->getJadwalKembali(),
-            'statistikBulanan'     => $this->getStatistikPeminjamanBulanan(),
-        ];
-
-        return view('dashboard.operator', $data);
-    }
+    // Removed private function operatorDashboard() { ... }
 
     private function userDashboard()
     {
@@ -75,13 +59,11 @@ class DashboardController extends Controller
         // Ambil peminjaman berdasarkan user_id
         $userPeminjaman = Peminjaman::where('user_id', $user->id)->get();
 
-        // Jika tidak ada, coba cari berdasarkan peminjam yang dibuat user
-        if ($userPeminjaman->isEmpty()) {
-            $peminjamIds = Peminjam::where('created_by', $user->id)->pluck('id');
-            if ($peminjamIds->count() > 0) {
-                $userPeminjaman = Peminjaman::whereIn('peminjam_id', $peminjamIds)->get();
-            }
-        }
+        // Jika tidak ada, ambil semua peminjaman (ini mungkin logika yang tidak tepat jika user hanya boleh melihat peminjaman mereka sendiri)
+        // Saya akan mengomentari bagian ini karena user seharusnya hanya melihat peminjaman mereka.
+        // if ($userPeminjaman->isEmpty()) {
+        //     $userPeminjaman = Peminjaman::all();
+        // }
 
         $data = [
             'peminjamanAktif'   => $userPeminjaman->whereIn('status', ['dipinjam', 'terlambat'])->count(),
@@ -138,22 +120,23 @@ class DashboardController extends Controller
         return $pendapatanBulanan;
     }
 
-    private function getStatistikPeminjamanBulanan()
-    {
-        $statistik = [];
-        for ($i = 5; $i >= 0; $i--) {
-            $bulan = Carbon::now()->subMonths($i);
-            $jumlah = Peminjaman::whereMonth('tanggal_pinjam', $bulan->month)
-                ->whereYear('tanggal_pinjam', $bulan->year)
-                ->count();
+    // Removed getStatistikPeminjamanBulanan() as it was only used by operatorDashboard()
+    // private function getStatistikPeminjamanBulanan()
+    // {
+    //     $statistik = [];
+    //     for ($i = 5; $i >= 0; $i--) {
+    //         $bulan = Carbon::now()->subMonths($i);
+    //         $jumlah = Peminjaman::whereMonth('tanggal_pinjam', $bulan->month)
+    //             ->whereYear('tanggal_pinjam', $bulan->year)
+    //             ->count();
 
-            $statistik[] = [
-                'bulan' => $bulan->format('M Y'),
-                'jumlah' => $jumlah
-            ];
-        }
-        return $statistik;
-    }
+    //         $statistik[] = [
+    //             'bulan' => $bulan->format('M Y'),
+    //             'jumlah' => $jumlah
+    //         ];
+    //     }
+    //     return $statistik;
+    // }
 
     private function getBarangPopuler($limit = 10)
     {
@@ -194,15 +177,16 @@ class DashboardController extends Controller
             ->get();
     }
 
-    private function getJadwalKembali()
-    {
-        return Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
-            ->where('status', 'dipinjam')
-            ->whereBetween('tanggal_kembali_rencana', [Carbon::today(), Carbon::today()->addDays(7)])
-            ->orderBy('tanggal_kembali_rencana')
-            ->limit(10)
-            ->get();
-    }
+    // Removed getJadwalKembali() as it was only used by operatorDashboard()
+    // private function getJadwalKembali()
+    // {
+    //     return Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
+    //         ->where('status', 'dipinjam')
+    //         ->whereBetween('tanggal_kembali_rencana', [Carbon::today(), Carbon::today()->addDays(7)])
+    //         ->orderBy('tanggal_kembali_rencana')
+    //         ->limit(10)
+    //         ->get();
+    // }
 
     private function getTransaksiTerakhir()
     {

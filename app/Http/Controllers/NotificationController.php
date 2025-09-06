@@ -38,8 +38,9 @@ class NotificationController extends Controller
     {
         $notifications = collect();
 
-        if ($user->hasAnyRole(['admin', 'operator'])) {
-            $notifications = $notifications->merge($this->getAdminOperatorNotifications());
+        // Changed from hasAnyRole(['admin', 'operator'])
+        if ($user->isAdmin()) {
+            $notifications = $notifications->merge($this->getAdminNotifications()); // Renamed method
         }
         
         if ($user->isUser()) {
@@ -49,7 +50,8 @@ class NotificationController extends Controller
         return $notifications->sortBy('priority')->values();
     }
 
-    private function getAdminOperatorNotifications()
+    // Renamed from getAdminOperatorNotifications to getAdminNotifications
+    private function getAdminNotifications()
     {
         $notifications = collect();
 

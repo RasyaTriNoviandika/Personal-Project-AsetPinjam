@@ -3,33 +3,30 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class CheckRole
 {
     public function handle(Request $request, Closure $next, ...$roles)
     {
-        if (!$request->user() || !in_array($request->user()->role, $roles)) {
-            abort(403, 'Akses tidak diizinkan untuk role Anda');
+        // Kalau belum login
+        if (!Auth::check()) {
+            return redirect()->route('login')
+                ->with('error', 'Silakan login terlebih dahulu.');
         }
+
+        $user = Auth::user();
+
+        // Kalau role null / kosong
+        if (empty($user->role)) {
+            abort(403, 'User tidak punya role.');
+        }
+
+        // Kalau role user tidak sesuai
+        if (!in_array($user->role, $roles)) {
+            abort(403, 'Anda tidak memiliki akses ke halaman ini.');
+        }
+
         return $next($request);
     }
-    
-        // if (!auth()->check()) {
-        //     return redirect()->route('login');
-        // }
-
-        // $user = auth()->user();
-        
-        // // Jika tidak ada role di user atau untuk backward compatibility
-        // if (!isset($user->role) || !$user->role) {
-        //     // Allow access if no role system is implemented
-        //     return $next($request);
-        // }
-
-        // // Check if user has any of the required roles
-        // if (!in_array($user->role, $roles)) {
-        //     abort(403, 'Akses tidak diizinkan untuk role Anda');
-        // }
-
-        // return $next($request);
-    }
+}

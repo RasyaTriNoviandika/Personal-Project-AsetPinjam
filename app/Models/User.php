@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -21,7 +21,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'status',
+        'is_active',
     ];
 
     /**
@@ -42,167 +42,64 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
+        'is_active' => 'boolean',
     ];
 
-    // ================= Role Helper Methods =================
+    /**
+     * Check if user is active
+     */
+    public function isActive(): bool
+    {
+        return $this->is_active ?? true;
+    }
 
-    public function isAdmin()
+    /**
+     * Check if user has specific role
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Check if user has any of the given roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin(): bool
     {
         return $this->role === 'admin';
     }
 
-    public function isOperator()
+    /**
+     * Check if user is operator
+     * This method can be removed if 'operator' role is completely deprecated.
+     * Keeping it for now as it might be referenced elsewhere, but it will always return false.
+     */
+    public function isOperator(): bool
     {
-        return $this->role === 'operator';
+        return $this->role === 'operator'; // This will now effectively always be false
     }
 
-    public function isUser()
+    /**
+     * Check if user is regular user
+     */
+    public function isUser(): bool
     {
         return $this->role === 'user';
     }
 
-    public function hasRole($role)
-    {
-        if (is_array($role)) {
-            return in_array($this->role, $role);
-        }
-        return $this->role === $role;
-    }
-
-    public function hasAnyRole($roles)
-    {
-        if (is_string($roles)) {
-            return $this->role === $roles;
-        }
-        return in_array($this->role, $roles);
-    }
-
-    public function canAccess($permission)
-    {
-        return \App\Helpers\RoleHelper::canAccess($this->role, $permission);
-    }
-
-    public function getRoleColorAttribute()
-    {
-        return \App\Helpers\RoleHelper::getRoleColor($this->role);
-    }
-
-    public function getRoleNameAttribute()
-    {
-        return \App\Helpers\RoleHelper::getRoleName($this->role);
-    }
-
-    public function getMenuItems()
-    {
-        return \App\Helpers\RoleHelper::getMenuByRole($this->role);
-    }
-
-    public function canViewFinancialData()
-    {
-        return \App\Helpers\RoleHelper::canViewFinancialData($this->role);
-    }
-
-    public function canManageUsers()
-    {
-        return \App\Helpers\RoleHelper::canManageUsers($this->role);
-    }
-
-    public function canDeleteData()
-    {
-        return \App\Helpers\RoleHelper::canDeleteData($this->role);
-    }
-
-    public function canExportData($type = 'operational')
-    {
-        return \App\Helpers\RoleHelper::canExportData($this->role, $type);
-    }
-
-    // ================= Relationships =================
-
+    /**
+     * Get user's peminjaman
+     */
     public function peminjaman()
     {
         return $this->hasMany(\App\Models\Peminjaman::class);
-    }
-
-    public function createdPeminjam()
-    {
-        return $this->hasMany(\App\Models\Peminjam::class, 'created_by');
-    }
-
-    // ================= Scopes =================
-
-    public function scopeActive($query)
-    {
-        return $query->where('status', 'active');
-    }
-
-    public function scopeByRole($query, $role)
-    {
-        return $query->where('role', $role);
-    }
-
-    public function scopeAdmins($query)
-    {
-        return $query->where('role', 'admin');
-    }
-
-    public function scopeOperators($query)
-    {
-        return $query->where('role', 'operator');
-    }
-
-    public function scopeUsers($query)
-    {
-        return $query->where('role', 'user');
-    }
-
-    // ================= Status Methods =================
-
-    public function isActive()
-    {
-        return $this->status === 'active';
-    }
-
-    public function isInactive()
-    {
-        return $this->status === 'inactive';
-    }
-
-    public function activate()
-    {
-        return $this->update(['status' => 'active']);
-    }
-
-    public function deactivate()
-    {
-        return $this->update(['status' => 'inactive']);
-    }
-
-    // ================= Statistics Methods =================
-
-    public function getTotalPeminjamanAttribute()
-    {
-        return $this->peminjaman()->count();
-    }
-
-    public function getActivePeminjamanAttribute()
-    {
-        return $this->peminjaman()
-                    ->whereIn('status', ['dipinjam', 'terlambat'])
-                    ->count();
-    }
-
-    public function getCompletedPeminjamanAttribute()
-    {
-        return $this->peminjaman()
-                    ->where('status', 'dikembalikan')
-                    ->count();
-    }
-
-    public function getOverduePeminjamanAttribute()
-    {
-        return $this->peminjaman()
-                    ->where('status', 'terlambat')
-                    ->count();
     }
 }

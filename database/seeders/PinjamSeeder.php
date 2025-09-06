@@ -5,7 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Peminjam;
 
-class PeminjamSeeder extends Seeder
+class PinjamSeeder extends Seeder
 {
     public function run(): void
     {
