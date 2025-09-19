@@ -256,8 +256,8 @@
             <div class="sidebar-divider"></div>
             <div class="sidebar-heading">Penyewaan</div>
             <li class="nav-item"><a class="nav-link {{ request()->routeIs('barang.*') ? 'active' : '' }}" href="{{ route('barang.index') }}"><i class="fas fa-search"></i>Cari Barang</a></li>
-            <li class="nav-item"><a class="nav-link {{ request()->routeIs('peminjam.*') ? 'active' : '' }}" href="{{ route('peminjam.index') }}"><i class="fas fa-address-book"></i>Peminjam</a></li>
-            <li class="nav-item"><a class="nav-link {{ request()->routeIs('peminjaman.user') ? 'active' : '' }}" href="{{ route('peminjaman.user') }}"><i class="fas fa-history"></i>Riwayat Sewa</a></li>
+            <li class="nav-item"><a class="nav-link {{ request()->routeIs('peminjam.*') ? 'active' : '' }}" href="{{ route('user.peminjam.index') }}"><i class="fas fa-address-book"></i>Peminjam</a></li>
+            <li class="nav-item"><a class="nav-link {{ request()->routeIs('user.peminjaman.index') ? 'active' : '' }}" href="{{ route('user.peminjaman.index') }}"><i class="fas fa-history"></i>Riwayat Sewa</a></li>
             @endif
 
             <div class="sidebar-divider"></div>
