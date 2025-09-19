@@ -1,15 +1,17 @@
 <?php
+// app/Models/User.php
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -21,8 +23,11 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'is_active',
+        'status',
+        'last_login_at',
+        
     ];
+
 
     /**
      * The attributes that should be hidden for serialization.
@@ -39,35 +44,10 @@ class User extends Authenticatable
      *
      * @var array<string, string>
      */
-    protected $casts = [
+    protected $casts =[
         'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'is_active' => 'boolean',
+        'last_login_at' => 'datetime',
     ];
-
-    /**
-     * Check if user is active
-     */
-    public function isActive(): bool
-    {
-        return $this->is_active ?? true;
-    }
-
-    /**
-     * Check if user has specific role
-     */
-    public function hasRole(string $role): bool
-    {
-        return $this->role === $role;
-    }
-
-    /**
-     * Check if user has any of the given roles
-     */
-    public function hasAnyRole(array $roles): bool
-    {
-        return in_array($this->role, $roles);
-    }
 
     /**
      * Check if user is admin
@@ -75,16 +55,6 @@ class User extends Authenticatable
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
-    }
-
-    /**
-     * Check if user is operator
-     * This method can be removed if 'operator' role is completely deprecated.
-     * Keeping it for now as it might be referenced elsewhere, but it will always return false.
-     */
-    public function isOperator(): bool
-    {
-        return $this->role === 'operator'; // This will now effectively always be false
     }
 
     /**
@@ -96,10 +66,98 @@ class User extends Authenticatable
     }
 
     /**
-     * Get user's peminjaman
+     * Check if user has any of the given roles
+     */
+    public function hasAnyRole(array $roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    /**
+     * Check if user has specific role
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Check if user is active
+     */
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
+
+    /**
+     * Scope to get only active users
+     */
+    public function scopeActive($query)
+    {
+        return $query->where('status', 'active');
+    }
+
+    /**
+     * Scope to get users by role
+     */
+    public function scopeRole($query, $role)
+    {
+        return $query->where('role', $role);
+    }
+
+    /**
+     * Relationship with peminjaman
      */
     public function peminjaman()
     {
-        return $this->hasMany(\App\Models\Peminjaman::class);
+        return $this->hasMany(Peminjaman::class,'user_id');
+    }
+
+    /**
+     * Get user's role display name
+     */
+    public function getRoleDisplayAttribute(): string
+    {
+        return match($this->role) {
+            'admin' => 'Administrator',
+            'user' => 'User',
+            default => ucfirst($this->role)
+        };
+    }
+
+    /**
+     * Get user's status display name
+     */
+    public function getStatusDisplayAttribute(): string
+    {
+        return match($this->status) {
+            'active' => 'Aktif',
+            'inactive' => 'Non Aktif',
+            default => ucfirst($this->status)
+        };
+    }
+
+    /**
+     * Get user's status badge class
+     */
+    public function getStatusBadgeClassAttribute(): string
+    {
+        return match($this->status) {
+            'active' => 'bg-success',
+            'inactive' => 'bg-secondary',
+            default => 'bg-secondary'
+        };
+    }
+
+    /**
+     * Get user's role badge class
+     */
+    public function getRoleBadgeClassAttribute(): string
+    {
+        return match($this->role) {
+            'admin' => 'bg-primary',
+            'user' => 'bg-info',
+            default => 'bg-secondary'
+        };
     }
 }

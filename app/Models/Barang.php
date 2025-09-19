@@ -21,6 +21,7 @@ class Barang extends Model
         'status',
         'deskripsi',
         'gambar',
+        'peminjaman_id' // ✅ tambahan
     ];
 
     protected $casts = [
@@ -86,4 +87,12 @@ class Barang extends Model
     {
         return 'Rp ' . number_format($this->denda_per_hari, 0, ',', '.');
     }
+
+// Barang.php
+
+public function getPendapatanAttribute()
+{
+    // Hitung pendapatan dari semua detail peminjaman barang ini
+    return $this->detailPeminjaman()->sum('subtotal') ?? 0;
+}
 }

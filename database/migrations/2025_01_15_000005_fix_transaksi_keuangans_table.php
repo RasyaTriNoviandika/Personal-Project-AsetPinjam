@@ -9,16 +9,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::dropIfExists('transaksi_keuangans');
-        
+
         Schema::create('transaksi_keuangans', function (Blueprint $table) {
             $table->id();
             $table->string('kode_transaksi')->unique();
-            $table->foreignId('peminjaman_id')->constrained('peminjamans')->onDelete('cascade');
+            $table->string('nama');
+            $table->foreignId('peminjaman_id')->nullable()->constrained('peminjamans')->onDelete('cascade');
+            $table->foreignId('user_id')->nullable()->constrained('users')->onDelete('set null');
             $table->enum('jenis_transaksi', ['masuk', 'keluar']);
-            $table->enum('kategori', ['sewa', 'denda', 'pemeliharaan', 'pembelian', 'lainnya']);
+            $table->string('kategori_transaksi')->nullable();
             $table->decimal('jumlah', 15, 2);
-            $table->text('deskripsi');
-            $table->date('tanggal_transaksi');
+            $table->text('keterangan')->nullable();
+            $table->dateTime('tanggal_transaksi');
+            $table->string('metode_pembayaran')->nullable();
+            $table->enum('status', ['berhasil', 'pending', 'gagal'])->default('pending');
             $table->string('bukti_transaksi')->nullable();
             $table->timestamps();
         });

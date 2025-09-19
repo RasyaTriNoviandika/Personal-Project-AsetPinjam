@@ -58,10 +58,10 @@
                             {{-- Gambar --}}
                             <td>
                                 @if($item->gambar)
-                                    <img src="{{ Storage::url($item->gambar) }}" class="img-thumbnail" style="width:50px; height:50px;">
+                                    <img src="{{ Storage::url($item->gambar) }}" class="img-thumbnail" style="width:50px; height:50px; object-fit: cover;">
                                 @else
-                                    <div class="bg-light d-flex align-items-center justify-content-center" style="width:50px; height:50px;">
-                                        <i class="fas fa-image text-muted"></i>
+                                    <div class="bg-light d-flex align-items-center justify-content-center rounded" style="width:50px; height:50px;">
+                                        <i class="fas fa-image text-muted fa-lg"></i>
                                     </div>
                                 @endif
                             </td>
@@ -74,7 +74,7 @@
 
                             {{-- Stok --}}
                             <td>
-                                <span class="badge {{ $item->stok_tersedia <= 3 ? 'bg-warning' : 'bg-success' }}">
+                                <span class="badge {{ $item->stok_tersedia <= 3 ? 'bg-danger' : ($item->stok_tersedia <= 5 ? 'bg-warning' : 'bg-success') }}">
                                     {{ $item->stok_tersedia }}/{{ $item->stok_total }}
                                 </span>
                             </td>
@@ -84,7 +84,7 @@
 
                             {{-- Status --}}
                             <td>
-                                <span class="badge {{ $item->status == 'aktif' ? 'bg-success' : 'bg-danger' }}">
+                                <span class="badge {{ $item->status == 'aktif' ? 'bg-success' : 'bg-secondary' }}">
                                     {{ ucfirst($item->status) }}
                                 </span>
                             </td>
@@ -92,16 +92,16 @@
                             {{-- Aksi --}}
                             <td>
                                 <div class="btn-group" role="group">
-                                    <a href="{{ route('barang.show', $item) }}" class="btn btn-sm btn-info">
+                                    <a href="{{ route('barang.show', $item) }}" class="btn btn-sm btn-info" data-bs-toggle="tooltip" data-bs-placement="top" title="Lihat Detail">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    <a href="{{ route('barang.edit', $item) }}" class="btn btn-sm btn-warning">
+                                    <a href="{{ route('barang.edit', $item) }}" class="btn btn-sm btn-warning" data-bs-toggle="tooltip" data-bs-placement="top" title="Edit Barang">
                                         <i class="fas fa-edit"></i>
                                     </a>
                                     <form action="{{ route('barang.destroy', $item) }}" method="POST" class="d-inline">
                                         @csrf
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">
+                                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus barang ini?')" data-bs-toggle="tooltip" data-bs-placement="top" title="Hapus Barang">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </form>
@@ -110,7 +110,10 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center">Tidak ada data barang</td>
+                            <td colspan="8" class="text-center py-4">
+                                <i class="fas fa-box-open fa-2x text-muted mb-2"></i>
+                                <p class="text-muted">Tidak ada data barang yang tersedia.</p>
+                            </td>
                         </tr>
                     @endforelse
                 </tbody>
@@ -118,7 +121,19 @@
         </div>
 
         {{-- Pagination --}}
-        {{ $barang->links() }}
+        <div class="d-flex justify-content-center mt-3">
+            {{ $barang->links() }}
+        </div>
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script>
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    })
+</script>
+@endpush

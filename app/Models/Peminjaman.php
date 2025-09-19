@@ -26,9 +26,9 @@ class Peminjaman extends Model
     ];
 
     protected $casts = [
-        'tanggal_pinjam' => 'date',
-        'tanggal_kembali_rencana' => 'date',
-        'tanggal_kembali_aktual' => 'date',
+        'tanggal_pinjam' => 'datetime',
+        'tanggal_kembali_rencana' => 'datetime',
+        'tanggal_kembali_aktual' => 'datetime',
         'total_biaya_sewa' => 'decimal:2',
         'total_denda' => 'decimal:2',
         'total_bayar' => 'decimal:2',
@@ -47,12 +47,12 @@ class Peminjaman extends Model
     // Relationships
     public function peminjam()
     {
-        return $this->belongsTo(Peminjam::class);
+        return $this->belongsTo(Peminjam::class,'peminjam_id');
     }
 
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class,'user_id');
     }
 
     public function detailPeminjaman()
@@ -164,4 +164,18 @@ class Peminjaman extends Model
             $this->update(['status' => 'terlambat']);
         }
     }
+
+    public function getTanggalKembaliFormattedAttribute()
+{
+    if ($this->tanggal_kembali_aktual) {
+        return $this->tanggal_kembali_aktual->format('d-m-Y');
+    }
+
+    if ($this->tanggal_kembali_rencana) {
+        return $this->tanggal_kembali_rencana->format('d-m-Y');
+    }
+
+    return '-';
+}
+
 }

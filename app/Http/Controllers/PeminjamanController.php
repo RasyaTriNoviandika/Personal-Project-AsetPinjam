@@ -1,319 +1,200 @@
 <?php
-// app/Http/Controllers/PeminjamanController.php (Enhanced with user methods)
 
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Peminjaman;
 use App\Models\DetailPeminjaman;
-use App\Models\Peminjam;
 use App\Models\Barang;
-use App\Models\TransaksiKeuangan;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\DB;
+use App\Models\Peminjam;
 use RealRashid\SweetAlert\Facades\Alert;
+use Carbon\Carbon;
 
 class PeminjamanController extends Controller
 {
-    public function index(Request $request)
+    // =================== INDEX ===================
+    public function index()
     {
-        $user = auth()->user();
-        $query = Peminjaman::with(['peminjam', 'detailPeminjaman.barang']);
-        
-        // Filter based on user role
-        if ($user->isUser()) {
-            $query->where('user_id', $user->id);
-        }
-        
-        // Filter berdasarkan status
-        if ($request->status && $request->status != 'semua') {
-            $query->where('status', $request->status);
-        }
-        
-        // Filter berdasarkan tanggal
-        if ($request->tanggal_mulai) {
-            $query->whereDate('tanggal_pinjam', '>=', $request->tanggal_mulai);
-        }
-        
-        if ($request->tanggal_selesai) {
-            $query->whereDate('tanggal_pinjam', '<=', $request->tanggal_selesai);
-        }
+        $peminjamans = Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
+            ->latest()
+            ->paginate(10);
 
-        $peminjaman = $query->latest()->paginate(15);
-
-        // Update status peminjaman yang terlambat (only for admin)
-        if ($user->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-            $this->updateStatusTerlambat();
-        }
-
-        $viewName = $user->isUser() ? 'peminjaman.user-index' : 'peminjaman.index';
-        return view($viewName, compact('peminjaman'));
+        return view('peminjaman.index', compact('peminjamans'));
     }
 
-    public function userPeminjaman(Request $request)
-    {
-        $user = auth()->user();
-        $query = Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
-            ->where('user_id', $user->id);
-        
-        // Filter berdasarkan status
-        if ($request->status && $request->status != 'semua') {
-            $query->where('status', $request->status);
-        }
-
-        $peminjaman = $query->latest()->paginate(10);
-        
-        // Statistics for user
-        $userStats = [
-            'total' => Peminjaman::where('user_id', $user->id)->count(),
-            'aktif' => Peminjaman::where('user_id', $user->id)
-                ->whereIn('status', ['dipinjam', 'terlambat'])->count(),
-            'selesai' => Peminjaman::where('user_id', $user->id)
-                ->where('status', 'dikembalikan')->count(),
-            'terlambat' => Peminjaman::where('user_id', $user->id)
-                ->where('status', 'terlambat')->count(),
-        ];
-
-        return view('peminjaman.user-index', compact('peminjaman', 'userStats'));
-    }
-
+    // =================== CREATE ===================
     public function create()
     {
-        // Only admin can create
-        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-            abort(403, 'Unauthorized');
-        }
+        $peminjam = Peminjam::all();
+        $barang = Barang::where('stok_tersedia', '>', 0)->get();
 
-        $peminjam = Peminjam::where('status', 'aktif')->get();
-        $barang = Barang::where('status', 'aktif')
-                       ->where('stok_tersedia', '>', 0)
-                       ->with('kategori')
-                       ->get();
-        
         return view('peminjaman.create', compact('peminjam', 'barang'));
     }
 
+    // =================== STORE ===================
     public function store(Request $request)
     {
-        // Only admin can create
-        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-            abort(403, 'Unauthorized');
-        }
-
         $request->validate([
             'peminjam_id' => 'required|exists:peminjams,id',
-            'tanggal_pinjam' => 'required|date|after_or_equal:today',
-            'tanggal_kembali_rencana' => 'required|date|after:tanggal_pinjam',
+            'tanggal_pinjam' => 'required|date',
+            'tanggal_kembali_rencana' => 'required|date|after_or_equal:tanggal_pinjam',
             'barang' => 'required|array|min:1',
             'barang.*.barang_id' => 'required|exists:barangs,id',
             'barang.*.jumlah' => 'required|integer|min:1',
-            'catatan' => 'nullable|string|max:1000'
+            'catatan' => 'nullable|string'
         ]);
 
-        DB::beginTransaction();
         try {
-            // Validasi stok tersedia
-            foreach ($request->barang as $item) {
-                $barang = Barang::find($item['barang_id']);
-                if ($barang->stok_tersedia < $item['jumlah']) {
-                    throw new \Exception("Stok {$barang->nama_barang} tidak mencukupi. Tersedia: {$barang->stok_tersedia}");
-                }
-            }
-
-            // Hitung total biaya
-            $totalBiayaSewa = 0;
-            $durasi = Carbon::parse($request->tanggal_pinjam)
-                           ->diffInDays(Carbon::parse($request->tanggal_kembali_rencana)) + 1;
-
-            foreach ($request->barang as $item) {
-                $barang = Barang::find($item['barang_id']);
-                $subtotal = $barang->harga_sewa_per_hari * $item['jumlah'] * $durasi;
-                $totalBiayaSewa += $subtotal;
-            }
-
             // Buat peminjaman
             $peminjaman = Peminjaman::create([
                 'peminjam_id' => $request->peminjam_id,
                 'user_id' => auth()->id(),
                 'tanggal_pinjam' => $request->tanggal_pinjam,
                 'tanggal_kembali_rencana' => $request->tanggal_kembali_rencana,
-                'total_biaya_sewa' => $totalBiayaSewa,
-                'total_denda' => 0,
-                'total_bayar' => $totalBiayaSewa,
                 'status' => 'dipinjam',
-                'catatan' => $request->catatan
+                'catatan' => $request->catatan,
+                'total_biaya_sewa' => 0,
+                'total_bayar' => 0
             ]);
 
-            // Buat detail peminjaman dan kurangi stok
-            foreach ($request->barang as $item) {
-                $barang = Barang::find($item['barang_id']);
-                $subtotal = $barang->harga_sewa_per_hari * $item['jumlah'] * $durasi;
+            $totalBiaya = 0;
+            $durasiHari = Carbon::parse($request->tanggal_pinjam)
+                ->diffInDays(Carbon::parse($request->tanggal_kembali_rencana)) + 1;
 
-                DetailPeminjaman::create([
-                    'peminjaman_id' => $peminjaman->id,
-                    'barang_id' => $item['barang_id'],
-                    'jumlah' => $item['jumlah'],
-                    'harga_sewa_per_hari' => $barang->harga_sewa_per_hari,
-                    'subtotal_sewa' => $subtotal,
-                    'kondisi_pinjam' => 'baik'
+            // Simpan detail barang + hitung biaya
+            foreach ($request->barang as $item) {
+                $barang = Barang::findOrFail($item['barang_id']);
+
+                $peminjaman->detailPeminjaman()->create([
+                    'barang_id' => $barang->id,
+                    'jumlah' => $item['jumlah']
                 ]);
 
-                // Kurangi stok tersedia
+                // Hitung biaya sewa
+                $biaya = $barang->harga_sewa_per_hari * $item['jumlah'] * $durasiHari;
+                $totalBiaya += $biaya;
+
+                // Kurangi stok
                 $barang->decrement('stok_tersedia', $item['jumlah']);
             }
 
-            // Buat transaksi keuangan (only if user has permission)
-            if (auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-                TransaksiKeuangan::create([
-                    'peminjaman_id' => $peminjaman->id,
-                    'jenis_transaksi' => 'masuk',
-                    'kategori' => 'sewa',
-                    'jumlah' => $totalBiayaSewa,
-                    'deskripsi' => "Pembayaran sewa untuk peminjaman {$peminjaman->kode_peminjaman}",
-                    'tanggal_transaksi' => now()
-                ]);
-            }
+            // Update total biaya
+            $peminjaman->update([
+                'total_biaya_sewa' => $totalBiaya,
+                'total_bayar' => $totalBiaya
+            ]);
 
-            DB::commit();
-
-            Alert::success('Berhasil', 'Data peminjaman berhasil ditambahkan');
+            Alert::success('Berhasil', 'Peminjaman berhasil ditambahkan');
             return redirect()->route('peminjaman.index');
-
         } catch (\Exception $e) {
-            DB::rollback();
-            Alert::error('Gagal', $e->getMessage());
-            return back()->withInput();
+            Alert::error('Gagal', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back()->withInput();
         }
     }
 
+    // =================== SHOW ===================
     public function show(Peminjaman $peminjaman)
     {
-        $user = auth()->user();
-        
-        // Authorization check
-        if ($user->isUser() && $peminjaman->user_id !== $user->id) {
-            abort(403, 'Unauthorized');
-        }
-
-        $peminjaman->load(['peminjam', 'detailPeminjaman.barang.kategori', 'user']);
+        $peminjaman->load(['peminjam', 'detailPeminjaman.barang']);
         return view('peminjaman.show', compact('peminjaman'));
     }
 
-    public function pengembalian(Peminjaman $peminjaman)
+    // =================== EDIT ===================
+    public function edit(Peminjaman $peminjaman)
     {
-        // Only admin can process returns
-        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-            abort(403, 'Unauthorized');
-        }
+        $peminjam = Peminjam::all();
+        $barang = Barang::where('status', 'aktif')->get();
 
-        if ($peminjaman->status !== 'dipinjam' && $peminjaman->status !== 'terlambat') {
-            Alert::error('Gagal', 'Peminjaman ini tidak dapat dikembalikan');
+        return view('peminjaman.edit', compact('peminjaman', 'peminjam', 'barang'));
+    }
+
+    // =================== UPDATE ===================
+    public function update(Request $request, Peminjaman $peminjaman)
+    {
+        $request->validate([
+            'tanggal_kembali_rencana' => 'required|date|after_or_equal:tanggal_pinjam',
+            'catatan' => 'nullable|string'
+        ]);
+
+        $peminjaman->update([
+            'tanggal_kembali_rencana' => $request->tanggal_kembali_rencana,
+            'catatan' => $request->catatan
+        ]);
+
+        Alert::success('Berhasil', 'Peminjaman berhasil diperbarui');
+        return redirect()->route('peminjaman.index');
+    }
+
+    // =================== DESTROY ===================
+    public function destroy(Peminjaman $peminjaman)
+    {
+        $peminjaman->delete();
+        Alert::success('Berhasil', 'Peminjaman berhasil dihapus');
+        return redirect()->route('peminjaman.index');
+    }
+
+    // =================== PENGEMBALIAN ===================
+    public function pengembalian($id)
+    {
+        try {
+            $peminjaman = Peminjaman::with('detailPeminjaman.barang')->findOrFail($id);
+
+            // Update status peminjaman
+            $peminjaman->update([
+                'status' => 'dikembalikan',
+                'tanggal_kembali' => now(),
+            ]);
+
+            // Kembalikan stok barang
+            foreach ($peminjaman->detailPeminjaman as $detail) {
+                $detail->barang->increment('stok_tersedia', $detail->jumlah);
+            }
+
+            Alert::success('Berhasil', 'Barang berhasil dikembalikan');
             return redirect()->route('peminjaman.index');
+        } catch (\Exception $e) {
+            Alert::error('Gagal', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()->back();
         }
-
-        $peminjaman->load(['detailPeminjaman.barang']);
-        return view('peminjaman.pengembalian', compact('peminjaman'));
     }
 
     public function prosesKembali(Request $request, Peminjaman $peminjaman)
-    {
-        // Only admin can process returns
-        if (!auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-            abort(403, 'Unauthorized');
-        }
+{
+    $request->validate([
+        'tanggal_kembali_aktual' => 'required|date',
+        'detail' => 'required|array',
+    ]);
 
-        $request->validate([
-            'tanggal_kembali_aktual' => 'required|date',
-            'detail.*.kondisi_kembali' => 'required|in:baik,rusak_ringan,rusak_berat,hilang',
-            'detail.*.catatan' => 'nullable|string|max:500'
+    try {
+        // Update status & tanggal kembali aktual
+        $peminjaman->update([
+            'status' => 'dikembalikan',
+            'tanggal_kembali' => $request->tanggal_kembali_aktual,
         ]);
 
-        DB::beginTransaction();
-        try {
-            $tanggalKembali = Carbon::parse($request->tanggal_kembali_aktual);
-            $tanggalRencana = Carbon::parse($peminjaman->tanggal_kembali_rencana);
-            
-            // Hitung denda keterlambatan
-            $hariTerlambat = $tanggalKembali->diffInDays($tanggalRencana, false);
-            $totalDenda = 0;
+        // Proses setiap detail barang
+        foreach ($request->detail as $detailId => $data) {
+            $detail = $peminjaman->detailPeminjaman()->find($detailId);
 
-            if ($hariTerlambat > 0) {
-                foreach ($peminjaman->detailPeminjaman as $detail) {
-                    $dendaBarang = $detail->barang->denda_per_hari * $detail->jumlah * $hariTerlambat;
-                    $totalDenda += $dendaBarang;
-                }
-            }
+            if ($detail) {
+                // Tambahkan stok kembali
+                $detail->barang->increment('stok_tersedia', $detail->jumlah);
 
-            // Update peminjaman
-            $peminjaman->update([
-                'tanggal_kembali_aktual' => $request->tanggal_kembali_aktual,
-                'total_denda' => $totalDenda,
-                'total_bayar' => $peminjaman->total_biaya_sewa + $totalDenda,
-                'status' => 'dikembalikan'
-            ]);
-
-            // Update detail dan kembalikan stok
-            foreach ($request->detail as $detailId => $detailData) {
-                $detail = DetailPeminjaman::find($detailId);
+                // Simpan kondisi & catatan
                 $detail->update([
-                    'kondisi_kembali' => $detailData['kondisi_kembali'],
-                    'catatan' => $detailData['catatan']
-                ]);
-
-                // Kembalikan stok jika barang tidak hilang
-                if ($detailData['kondisi_kembali'] !== 'hilang') {
-                    $detail->barang->increment('stok_tersedia', $detail->jumlah);
-                } else {
-                    // Kurangi stok total jika barang hilang
-                    $detail->barang->decrement('stok_total', $detail->jumlah);
-                }
-            }
-
-            // Buat transaksi denda jika ada (only for admin)
-            if ($totalDenda > 0 && auth()->user()->isAdmin()) { // Changed from hasAnyRole(['admin', 'operator'])
-                TransaksiKeuangan::create([
-                    'peminjaman_id' => $peminjaman->id,
-                    'jenis_transaksi' => 'masuk',
-                    'kategori' => 'denda',
-                    'jumlah' => $totalDenda,
-                    'deskripsi' => "Denda keterlambatan {$hariTerlambat} hari untuk peminjaman {$peminjaman->kode_peminjaman}",
-                    'tanggal_transaksi' => now()
+                    'kondisi_kembali' => $data['kondisi_kembali'],
+                    'catatan' => $data['catatan'] ?? null,
                 ]);
             }
-
-            DB::commit();
-
-            Alert::success('Berhasil', 'Pengembalian barang berhasil diproses');
-            return redirect()->route('peminjaman.index');
-
-        } catch (\Exception $e) {
-            DB::rollback();
-            Alert::error('Gagal', $e->getMessage());
-            return back();
-        }
-    }
-
-    private function updateStatusTerlambat()
-    {
-        Peminjaman::where('status', 'dipinjam')
-                  ->where('tanggal_kembali_rencana', '<', now())
-                  ->update(['status' => 'terlambat']);
-    }
-
-    public function destroy(Peminjaman $peminjaman)
-    {
-        // Only admin can delete
-        if (!auth()->user()->isAdmin()) {
-            abort(403, 'Only admin can delete records');
         }
 
-        if ($peminjaman->status === 'dipinjam' || $peminjaman->status === 'terlambat') {
-            Alert::error('Gagal', 'Peminjaman yang sedang berlangsung tidak dapat dihapus');
-            return redirect()->route('peminjaman.index');
-        }
-
-        $peminjaman->delete();
-        Alert::success('Berhasil', 'Data peminjaman berhasil dihapus');
+        \RealRashid\SweetAlert\Facades\Alert::success('Berhasil', 'Barang berhasil dikembalikan.');
         return redirect()->route('peminjaman.index');
+
+    } catch (\Exception $e) {
+        \RealRashid\SweetAlert\Facades\Alert::error('Gagal', 'Terjadi kesalahan: ' . $e->getMessage());
+        return redirect()->back()->withInput();
     }
+}
+
 }

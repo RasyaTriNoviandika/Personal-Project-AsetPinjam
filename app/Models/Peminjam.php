@@ -36,17 +36,21 @@ class Peminjam extends Model
     }
 
     // Relationships
-    public function peminjaman()
+  public function peminjaman()
 {
-    return $this->hasManyThrough(
-        Peminjaman::class,
-        DetailPeminjaman::class,
-        'barang_id',   // foreign key di detail_peminjaman
-        'id',          // primary key di peminjaman
-        'id',          // local key di barang
-        'peminjaman_id'// foreign key di detail_peminjaman
-    );
+    return $this->hasMany(Peminjaman::class);
+
+    // Kalau nanti mau pakai hasManyThrough:
+    // return $this->hasManyThrough(
+    //     Peminjaman::class,
+    //     DetailPeminjaman::class,
+    //     'barang_id',   // foreign key di detail_peminjaman
+    //     'id',          // primary key di peminjaman
+    //     'id',          // local key di barang
+    //     'peminjaman_id'// foreign key di detail_peminjaman
+    // );
 }
+
 
     // Scopes
     public function scopeActive($query)

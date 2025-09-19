@@ -29,6 +29,18 @@
                         @enderror
                     </div>
 
+                 <div class="mb-3">
+                    {{-- <label for="peminjaman_id" class="form-label">Terkait Peminjaman</label>
+                    <select class="form-select" id="peminjaman_id" name="peminjaman_id">
+                        <option value="">Tidak terkait peminjaman</option> --}}
+                        @foreach($peminjaman as $p)
+                            <option value="{{ $p->id }}" {{ old('peminjaman_id') == $p->id ? 'selected' : '' }}>
+                                {{ $p->kode_peminjaman }} - {{ $p->peminjam->nama_peminjam }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
                     <div class="mb-3">
                         <label for="kategori_id" class="form-label">Kategori *</label>
                         <select class="form-select @error('kategori_id') is-invalid @enderror" 

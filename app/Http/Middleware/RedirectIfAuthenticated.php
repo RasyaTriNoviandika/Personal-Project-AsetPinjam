@@ -14,9 +14,17 @@ class RedirectIfAuthenticated
 
         foreach ($guards as $guard) {
             if (Auth::guard($guard)->check()) {
-                // Kalau user sudah login, biarin akses login aja
-                // atau kalau mau redirect, bisa diganti ke halaman lain
-                return redirect('/dashboard');
+                $user = Auth::guard($guard)->user();
+
+                // Redirect sesuai role
+                if ($user->role === 'admin') {
+                    return redirect()->route('admin.dashboard');
+                } elseif ($user->role === 'user') {
+                    return redirect()->route('user.dashboard');
+                }
+
+                // fallback kalau role tidak dikenal
+                return redirect()->route('dashboard');
             }
         }
 

@@ -16,20 +16,38 @@
             <textarea name="deskripsi" id="deskripsi" class="form-control"></textarea>
         </div>
 
-<div class="mb-3">
-    <label for="jumlah_barang" class="form-label">Jumlah Barang</label>
-    <input type="number" name="jumlah_barang" class="form-control" value="0">
-</div>
+        <div class="mb-3">
+            <label for="jumlah_barang" class="form-label">Jumlah Barang</label>
+            <input type="number" name="jumlah_barang" class="form-control" value="0">
+        </div>
 
-<div class="mb-3">
-    <label for="harga_sewa" class="form-label">Harga Sewa</label>
-    <input type="number" name="harga_sewa" class="form-control" value="0">
-</div>
+        <div class="mb-3">
+            <label for="harga_sewa" class="form-label">Harga Sewa</label>
+            <input type="number" name="harga_sewa" class="form-control" value="0">
+        </div>
 
-<button type="submit" class="btn btn-primary">Simpan</button>
-
-
+        <button type="submit" class="btn btn-primary">Simpan</button>
         <a href="{{ route('kategori-barang.index') }}" class="btn btn-secondary">Kembali</a>
     </form>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Kalau validasi error
+    @if ($errors->any())
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal Menyimpan',
+            html: `
+                <ul style="text-align: left;">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            `
+        });
+    @endif
+</script>
+@endpush

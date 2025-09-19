@@ -15,7 +15,7 @@ return new class extends Migration
             }
             
             if (!Schema::hasColumn('users', 'status')) {
-                $table->enum('status', ['active', 'inactive'])->default('active');
+                $table->enum('staatus', ['active', 'inactive'])->default('active');
             }
         });
     }

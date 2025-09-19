@@ -65,9 +65,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse($peminjaman as $item)
+                    @forelse($peminjamans as $item)
                         <tr>
-                            <td>{{ $loop->iteration + ($peminjaman->currentPage() - 1) * $peminjaman->perPage() }}</td>
+                            <td>{{ $loop->iteration + ($peminjamans->currentPage() - 1) * $peminjamans->perPage() }}</td>
                             <td>
                                 <span class="badge bg-secondary">{{ $item->kode_peminjaman }}</span>
                             </td>
@@ -109,28 +109,41 @@
                                     {{ ucfirst($item->status) }}
                                 </span>
                             </td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="{{ route('peminjaman.show', $item) }}" class="btn btn-sm btn-info" title="Detail">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    @if($item->status == 'dipinjam' || $item->status == 'terlambat')
-                                        <a href="{{ route('peminjaman.pengembalian', $item) }}" class="btn btn-sm btn-warning" title="Kembalikan">
-                                            <i class="fas fa-undo"></i>
-                                        </a>
-                                    @endif
-                                    @if($item->status != 'dipinjam' && $item->status != 'terlambat')
-                                        <form action="{{ route('peminjaman.destroy', $item) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger" 
-                                                    onclick="return confirm('Yakin ingin menghapus?')" title="Hapus">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    @endif
-                                </div>
-                            </td>
+                          <td>
+    <div class="btn-group" role="group">
+        <!-- Detail -->
+        <a href="{{ route('peminjaman.show', $item) }}" class="btn btn-sm btn-info" title="Detail">
+            <i class="fas fa-eye"></i>
+        </a>
+
+        {{-- Tombol Kembalikan --}}
+@if($item->status == 'dipinjam' || $item->status == 'terlambat')
+    <form action="{{ route('peminjaman.kembali', $item->id) }}" 
+          method="POST" class="d-inline"
+          onsubmit="return confirm('Yakin ingin mengembalikan peminjaman ini?')">
+        @csrf
+        @method('PUT')
+        <button type="submit" class="btn btn-sm btn-warning" title="Kembalikan">
+            <i class="fas fa-undo"></i>
+        </button>
+    </form>
+@endif
+
+{{-- Tombol Hapus --}}
+@if($item->status != 'dipinjam' && $item->status != 'terlambat')
+    <form action="{{ route('peminjaman.destroy', $item->id) }}" 
+          method="POST" class="d-inline"
+          onsubmit="return confirm('Yakin ingin menghapus data peminjaman ini?')">
+        @csrf
+        @method('DELETE')
+        <button type="submit" class="btn btn-sm btn-danger" title="Hapus">
+            <i class="fas fa-trash"></i>
+        </button>
+    </form>
+@endif
+
+    </div>
+</td>
                         </tr>
                     @empty
                         <tr>
@@ -142,7 +155,7 @@
         </div>
 
         {{-- Pagination --}}
-        {{ $peminjaman->appends(request()->query())->links() }}
+        {{ $peminjamans->appends(request()->query())->links() }}
     </div>
 </div>
 @endsection

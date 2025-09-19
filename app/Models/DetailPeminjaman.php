@@ -28,10 +28,17 @@ class DetailPeminjaman extends Model
     ];
 
     // Relationships
-    public function peminjaman()
-    {
-        return $this->belongsTo(Peminjaman::class);
-    }
+  public function detailPeminjaman()
+{
+    return $this->hasManyThrough(
+        DetailPeminjaman::class,
+        Peminjaman::class,
+        'peminjam_id',   // Foreign key di tabel peminjaman
+        'peminjaman_id', // Foreign key di tabel detail_peminjaman
+        'id',            // Local key di tabel peminjam
+        'id'             // Local key di tabel peminjaman
+    );
+}
 
     public function barang()
     {

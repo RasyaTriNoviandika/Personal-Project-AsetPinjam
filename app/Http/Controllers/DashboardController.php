@@ -1,5 +1,4 @@
 <?php
-// app/Http/Controllers/DashboardController.php
 
 namespace App\Http\Controllers;
 
@@ -19,60 +18,52 @@ class DashboardController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user || !$user->role) {
-            abort(403, 'No role assigned to your account');
+        if ($user->hasRole('admin')) {
+            return redirect()->route('admin.dashboard');
         }
 
-        // Removed 'operator' case
-        return match ($user->role) {
-            'admin'    => $this->adminDashboard(),
-            'user'     => $this->userDashboard(),
-            default    => abort(403, 'Invalid role assigned'),
-        };
+        if ($user->hasRole('user')) {
+            return redirect()->route('user.dashboard');
+        }
+
+        abort(403, 'Unauthorized');
     }
 
-    private function adminDashboard()
+    // Dashboard admin
+    public function adminDashboard()
     {
         $data = [
-            'totalBarang'            => Barang::count(),
-            'totalPeminjam'          => Peminjam::count(),
-            'totalUsers'             => User::count(),
-            'totalPeminjamanAktif'   => Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count(),
-            'totalPendapatanBulanIni'=> $this->getPendapatanBulanIni(),
-            'totalPengeluaranBulanIni'=> $this->getPengeluaranBulanIni(),
-            'pendapatanBulanan'      => $this->getPendapatanBulanan(),
-            'barangPopuler'          => $this->getBarangPopuler(10),
-            'peminjamanTerlambat'    => $this->getPeminjamanTerlambat(),
-            'stokMenipis'            => $this->getStokMenipis(),
-            'transaksiTerakhir'      => $this->getTransaksiTerakhir(),
+            'totalBarang'              => Barang::count(),
+            'totalPeminjam'            => Peminjam::count(),
+            'totalUsers'               => User::count(),
+            'totalPeminjamanAktif'     => Peminjaman::whereIn('status', ['dipinjam', 'terlambat'])->count(),
+            'totalPendapatanBulanIni'  => $this->getPendapatanBulanIni(),
+            'totalPengeluaranBulanIni' => $this->getPengeluaranBulanIni(),
+            'grafikBulanan'            => $this->getGrafikBulanan(), // ✅ grafik pendapatan + pengeluaran
+            'barangPopuler'            => $this->getBarangPopuler(10),
+            'peminjamanTerlambat'      => $this->getPeminjamanTerlambat(),
+            'stokMenipis'              => $this->getStokMenipis(),
+            'transaksiTerakhir'        => $this->getTransaksiTerakhir(),
         ];
 
         return view('dashboard.admin', $data);
     }
 
-    // Removed private function operatorDashboard() { ... }
-
-    private function userDashboard()
+    // Dashboard user
+    public function userDashboard()
     {
         $user = auth()->user();
 
-        // Ambil peminjaman berdasarkan user_id
         $userPeminjaman = Peminjaman::where('user_id', $user->id)->get();
 
-        // Jika tidak ada, ambil semua peminjaman (ini mungkin logika yang tidak tepat jika user hanya boleh melihat peminjaman mereka sendiri)
-        // Saya akan mengomentari bagian ini karena user seharusnya hanya melihat peminjaman mereka.
-        // if ($userPeminjaman->isEmpty()) {
-        //     $userPeminjaman = Peminjaman::all();
-        // }
-
         $data = [
-            'peminjamanAktif'   => $userPeminjaman->whereIn('status', ['dipinjam', 'terlambat'])->count(),
-            'totalPeminjaman'   => $userPeminjaman->count(),
-            'peminjamanSelesai' => $userPeminjaman->where('status', 'dikembalikan')->count(),
-            'peminjamanTerlambat'=> $userPeminjaman->where('status', 'terlambat')->count(),
-            'riwayatPeminjaman' => $userPeminjaman->sortByDesc('created_at')->take(5),
-            'barangTersedia'    => Barang::where('status', 'aktif')->where('stok_tersedia', '>', 0)->count(),
-            'kategoriTersedia'  => DB::table('barangs')
+            'peminjamanAktif'     => $userPeminjaman->whereIn('status', ['dipinjam', 'terlambat'])->count(),
+            'totalPeminjaman'     => $userPeminjaman->count(),
+            'peminjamanSelesai'   => $userPeminjaman->where('status', 'dikembalikan')->count(),
+            'peminjamanTerlambat' => $userPeminjaman->where('status', 'terlambat')->count(),
+            'riwayatPeminjaman'   => $userPeminjaman->sortByDesc('created_at')->take(5),
+            'barangTersedia'      => Barang::where('status', 'aktif')->where('stok_tersedia', '>', 0)->count(),
+            'kategoriTersedia'    => DB::table('barangs')
                 ->join('kategori_barangs', 'barangs.kategori_id', '=', 'kategori_barangs.id')
                 ->where('barangs.status', 'aktif')
                 ->where('barangs.stok_tersedia', '>', 0)
@@ -102,41 +93,30 @@ class DashboardController extends Controller
             ->sum('jumlah');
     }
 
-    private function getPendapatanBulanan()
+    private function getGrafikBulanan()
     {
-        $pendapatanBulanan = [];
+        $bulanan = [];
         for ($i = 5; $i >= 0; $i--) {
             $bulan = Carbon::now()->subMonths($i);
+
             $pendapatan = TransaksiKeuangan::where('jenis_transaksi', 'masuk')
                 ->whereMonth('tanggal_transaksi', $bulan->month)
                 ->whereYear('tanggal_transaksi', $bulan->year)
                 ->sum('jumlah');
 
-            $pendapatanBulanan[] = [
-                'bulan'      => $bulan->format('M Y'),
-                'pendapatan' => $pendapatan
+            $pengeluaran = TransaksiKeuangan::where('jenis_transaksi', 'keluar')
+                ->whereMonth('tanggal_transaksi', $bulan->month)
+                ->whereYear('tanggal_transaksi', $bulan->year)
+                ->sum('jumlah');
+
+            $bulanan[] = [
+                'bulan'      => $bulan->translatedFormat('M Y'),
+                'pendapatan' => $pendapatan,
+                'pengeluaran'=> $pengeluaran,
             ];
         }
-        return $pendapatanBulanan;
+        return $bulanan;
     }
-
-    // Removed getStatistikPeminjamanBulanan() as it was only used by operatorDashboard()
-    // private function getStatistikPeminjamanBulanan()
-    // {
-    //     $statistik = [];
-    //     for ($i = 5; $i >= 0; $i--) {
-    //         $bulan = Carbon::now()->subMonths($i);
-    //         $jumlah = Peminjaman::whereMonth('tanggal_pinjam', $bulan->month)
-    //             ->whereYear('tanggal_pinjam', $bulan->year)
-    //             ->count();
-
-    //         $statistik[] = [
-    //             'bulan' => $bulan->format('M Y'),
-    //             'jumlah' => $jumlah
-    //         ];
-    //     }
-    //     return $statistik;
-    // }
 
     private function getBarangPopuler($limit = 10)
     {
@@ -176,17 +156,6 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
     }
-
-    // Removed getJadwalKembali() as it was only used by operatorDashboard()
-    // private function getJadwalKembali()
-    // {
-    //     return Peminjaman::with(['peminjam', 'detailPeminjaman.barang'])
-    //         ->where('status', 'dipinjam')
-    //         ->whereBetween('tanggal_kembali_rencana', [Carbon::today(), Carbon::today()->addDays(7)])
-    //         ->orderBy('tanggal_kembali_rencana')
-    //         ->limit(10)
-    //         ->get();
-    // }
 
     private function getTransaksiTerakhir()
     {

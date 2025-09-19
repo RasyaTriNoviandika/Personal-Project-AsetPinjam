@@ -1,5 +1,4 @@
 <?php
-// routes/web.php
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\{
@@ -16,28 +15,26 @@ use App\Http\Controllers\{
     ExportController
 };
 
-// Public routes
-Route::get('/', function () {
-    return redirect()->route('login');
-});
-
-// Authentication routes
+// Public
+Route::get('/', fn() => redirect()->route('login'));
 Auth::routes(['register' => false]);
 
-// Protected routes - All authenticated users
+// Protected (semua user login)
 Route::middleware(['auth'])->group(function () {
-    // Dashboard - Akan redirect sesuai role di controller
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/home', [DashboardController::class, 'index'])->name('home');
 
-    // Profile & Settings - Semua role bisa akses
-    Route::get('/profile', [UserController::class, 'profile'])->name('users.profile');
-    Route::put('/profile', [UserController::class, 'updateProfile'])->name('users.profile.update');
-    Route::get('/settings/profile', [SettingsController::class, 'profile'])->name('settings.profile');
-    Route::put('/settings/profile', [SettingsController::class, 'updateProfile'])->name('settings.profile.update');
-    Route::put('/settings/password', [SettingsController::class, 'changePassword'])->name('settings.password.change');
+    // Settings
+    Route::prefix('settings')->name('settings.')->group(function () {
+    Route::get('profile', [SettingsController::class, 'profile'])->name('profile');
+    Route::put('profile', [SettingsController::class, 'updateProfile'])->name('updateProfile');
 
-    // Notifications - Semua role
+    Route::get('account', [SettingsController::class, 'account'])->name('account');
+    Route::put('account', [SettingsController::class, 'updateAccount'])->name('updateAccount');
+});
+
+
+    // Notifications
     Route::prefix('notifications')->name('notifications.')->group(function () {
         Route::get('/', [NotificationController::class, 'index'])->name('index');
         Route::get('/count', [NotificationController::class, 'getUnreadCount'])->name('count');
@@ -46,74 +43,65 @@ Route::middleware(['auth'])->group(function () {
     });
 });
 
-// USER ROUTES - Users dapat melihat barang dan mengelola peminjaman mereka sendiri
-Route::middleware(['auth', 'role:user'])->group(function () {
-    // Barang - View only untuk user
-    Route::get('/barang', [BarangController::class, 'index'])->name('barang.index');
-    Route::get('/barang/{barang}', [BarangController::class, 'show'])->name('barang.show');
-    
-    // User's own peminjaman - User hanya bisa lihat peminjaman sendiri
-    Route::get('/my-peminjaman', [PeminjamanController::class, 'userPeminjaman'])->name('peminjaman.user');
-});
-
-// SHARED ROUTES - User dan Admin bisa akses (dengan policy check)
-Route::middleware(['auth', 'role:user,admin'])->group(function () {
-    // Peminjaman detail - dengan policy check
-    Route::get('/peminjaman/{peminjaman}', [PeminjamanController::class, 'show'])
-        ->name('peminjaman.show');
-});
-
-// ADMIN ROUTES - Full system access
+// Admin-only
 Route::middleware(['auth', 'role:admin'])->group(function () {
+    Route::get('/admin/dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
+
     // User Management
     Route::resource('users', UserController::class)->except(['show']);
     Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
 
-    // Barang Management
-    Route::prefix('barang')->name('barang.')->group(function () {
-        Route::get('/create', [BarangController::class, 'create'])->name('create');
-        Route::post('/', [BarangController::class, 'store'])->name('store');
-        Route::get('/{barang}/edit', [BarangController::class, 'edit'])->name('edit');
-        Route::put('/{barang}', [BarangController::class, 'update'])->name('update');
-        Route::delete('/{barang}', [BarangController::class, 'destroy'])->name('destroy');
-    });
-    
-    // Kategori Barang Management
+    // Barang & Kategori
+    Route::resource('barang', BarangController::class);
     Route::resource('kategori-barang', KategoriBarangController::class);
-    
-    // Peminjam Management
-    Route::resource('peminjam', PeminjamController::class);
-    
-    // Peminjaman Management - Full CRUD untuk admin
-    Route::prefix('peminjaman')->name('peminjaman.')->group(function () {
-        Route::get('/', [PeminjamanController::class, 'index'])->name('index');
-        Route::get('/create', [PeminjamanController::class, 'create'])->name('create');
-        Route::post('/', [PeminjamanController::class, 'store'])->name('store');
-        Route::get('/{peminjaman}/edit', [PeminjamanController::class, 'edit'])->name('edit');
-        Route::put('/{peminjaman}', [PeminjamanController::class, 'update'])->name('update');
-        Route::delete('/{peminjaman}', [PeminjamanController::class, 'destroy'])->name('destroy');
-        
-        // Pengembalian process
-        Route::get('/{peminjaman}/pengembalian', [PeminjamanController::class, 'pengembalian'])->name('pengembalian');
-        Route::post('/{peminjaman}/kembali', [PeminjamanController::class, 'prosesKembali'])->name('proses-kembali');
-    });
 
-    // Financial Management
+    // Peminjam
+    Route::resource('peminjam', PeminjamController::class);
+
+   // Peminjaman
+Route::resource('peminjaman', PeminjamanController::class)->except(['create','store']);
+Route::get('peminjaman/create', [PeminjamanController::class, 'create'])->name('peminjaman.create');
+Route::post('peminjaman', [PeminjamanController::class, 'store'])->name('peminjaman.store');
+
+// Pengembalian
+// GET (langsung lewat URL)
+Route::get('peminjaman/{peminjaman}/pengembalian', [PeminjamanController::class, 'pengembalian'])
+    ->name('peminjaman.pengembalian');
+
+// PUT (lebih aman, lewat form submit)
+Route::put('peminjaman/{peminjaman}/kembali', [PeminjamanController::class, 'prosesKembali'])
+    ->name('peminjaman.kembali');
+
+    // Transaksi Keuangan
     Route::resource('transaksi-keuangan', TransaksiKeuanganController::class);
-    
-    // Reports Management
-    Route::prefix('laporan')->name('laporan.')->group(function () {
-        Route::get('/', [LaporanController::class, 'index'])->name('index');
-        Route::get('/keuangan', [LaporanController::class, 'keuangan'])->name('keuangan');
-        Route::get('/peminjaman', [LaporanController::class, 'peminjaman'])->name('peminjaman');
-        Route::get('/barang', [LaporanController::class, 'barang'])->name('barang');
+
+    // Laporan Web
+    Route::get('laporan', [LaporanController::class, 'index'])->name('laporan.index');
+
+    // Export (PDF & Excel) → pindah ke ExportController
+    Route::prefix('laporan/export')->name('laporan.export.')->group(function () {
+        Route::get('/pdf', [ExportController::class, 'exportPdf'])->name('pdf');
+        Route::get('/excel', [ExportController::class, 'exportExcel'])->name('excel');
+
+        // per kategori
+        Route::get('/user/pdf', [ExportController::class, 'exportUserPDF'])->name('user.pdf');
+        Route::get('/user/excel', [ExportController::class, 'exportUserExcel'])->name('user.excel');
+        Route::get('/barang/pdf', [ExportController::class, 'exportBarangPDF'])->name('barang.pdf');
+        Route::get('/barang/excel', [ExportController::class, 'exportBarangExcel'])->name('barang.excel');
+        Route::get('/peminjaman/pdf', [ExportController::class, 'exportPeminjamanPDF'])->name('peminjaman.pdf');
+        Route::get('/peminjaman/excel', [ExportController::class, 'exportPeminjamanExcel'])->name('peminjaman.excel');
+        Route::get('/keuangan/pdf', [ExportController::class, 'exportKeuanganPDF'])->name('keuangan.pdf');
+        Route::get('/keuangan/excel', [ExportController::class, 'exportKeuanganExcel'])->name('keuangan.excel');
     });
-    
-    // Export Management
-    Route::prefix('export')->name('export.')->group(function () {
-        Route::get('/barang', [ExportController::class, 'barang'])->name('barang');
-        Route::get('/peminjaman', [ExportController::class, 'peminjaman'])->name('peminjaman');
-        Route::get('/transaksi', [ExportController::class, 'transaksi'])->name('transaksi');
-        Route::get('/laporan/{type}', [ExportController::class, 'laporan'])->name('laporan');
-    });
+});
+
+// User-only
+Route::middleware(['auth', 'role:user'])->group(function () {
+    Route::get('/user/dashboard', [DashboardController::class, 'userDashboard'])->name('user.dashboard');
+    Route::get('/my-peminjaman', [PeminjamanController::class, 'userPeminjaman'])->name('peminjaman.user');
+});
+
+// Shared (Admin + User)
+Route::middleware(['auth', 'role:admin,user'])->group(function () {
+    Route::get('/peminjaman/{peminjaman}', [PeminjamanController::class, 'show'])->name('peminjaman.show');
 });

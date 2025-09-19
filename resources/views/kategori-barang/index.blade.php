@@ -12,12 +12,6 @@
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('barang.index') }}">Data Barang</a>
                 </li>
-                {{-- <li class="nav-item">
-                    <a class="nav-link" href="{{ route('peminjam.index') }}">Data Peminjam</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="{{ route('peminjaman.index') }}">Peminjaman</a>
-                </li> --}}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('laporan.index') }}">Laporan</a>
                 </li>
@@ -96,3 +90,24 @@
     </div>
 </div>
 @endsection
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    @if(session('success'))
+        Swal.fire({
+            icon: 'success',
+            title: 'Berhasil',
+            text: '{{ session('success') }}',
+            showConfirmButton: false,
+            timer: 2000
+        })
+    @elseif(session('error'))
+        Swal.fire({
+            icon: 'error',
+            title: 'Gagal',
+            text: '{{ session('error') }}'
+        })
+    @endif
+</script>
+@endpush

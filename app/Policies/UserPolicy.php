@@ -13,7 +13,7 @@ class UserPolicy
     /**
      * Determine whether the user can view any models.
      */
-    public function viewAny(User $user)
+    public function viewAny(User $user): bool
     {
         return $user->isAdmin();
     }
@@ -21,16 +21,16 @@ class UserPolicy
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, User $model)
+    public function view(User $authUser, User $user): bool
     {
-        // Admin can view any user, users can view their own profile
-        return $user->isAdmin() || $user->id === $model->id;
+        // Admins can view any user, users can only view themselves
+        return $authUser->isAdmin() || $authUser->id === $user->id;
     }
 
     /**
      * Determine whether the user can create models.
      */
-    public function create(User $user)
+    public function create(User $user): bool
     {
         return $user->isAdmin();
     }
@@ -38,25 +38,33 @@ class UserPolicy
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, User $model)
+    public function update(User $authUser, User $user): bool
     {
-        // Admin can update any user, users can update their own profile
-        return $user->isAdmin() || $user->id === $model->id;
+        // Admins can update any user, users can only update themselves
+        return $authUser->isAdmin() || $authUser->id === $user->id;
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, User $model)
+    public function delete(User $authUser, User $user): bool
     {
-        // Only admin can delete, but not themselves
-        return $user->isAdmin() && $user->id !== $model->id;
+        // Only admins can delete users, and they can't delete themselves
+        return $authUser->isAdmin() && $authUser->id !== $user->id;
     }
 
     /**
-     * Determine whether the user can manage roles.
+     * Determine whether the user can restore the model.
      */
-    public function manageRoles(User $user)
+    public function restore(User $user): bool
+    {
+        return $user->isAdmin();
+    }
+
+    /**
+     * Determine whether the user can permanently delete the model.
+     */
+    public function forceDelete(User $user): bool
     {
         return $user->isAdmin();
     }

@@ -2,116 +2,137 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\TransaksiKeuangan;
-use Illuminate\Support\Facades\Storage;
-use Alert;
+use Illuminate\Http\Request;
 
 class TransaksiKeuanganController extends Controller
 {
-    public function index()
+    /**
+     * Tampilkan daftar transaksi keuangan.
+     */
+    public function index(Request $request)
     {
-        $transaksi = TransaksiKeuangan::with('peminjaman.peminjam')
-            ->latest('tanggal_transaksi')
-            ->paginate(15);
+        $query = TransaksiKeuangan::query();
 
-        $totalMasuk = TransaksiKeuangan::where('jenis_transaksi', 'masuk')->sum('jumlah');
+        if ($request->filled('jenis')) {
+            $query->where('jenis_transaksi', $request->jenis);
+        }
+        if ($request->filled('tanggal_mulai')) {
+            $query->whereDate('tanggal_transaksi', '>=', $request->tanggal_mulai);
+        }
+        if ($request->filled('tanggal_selesai')) {
+            $query->whereDate('tanggal_transaksi', '<=', $request->tanggal_selesai);
+        }
+
+        $transaksi = $query->latest()->paginate(10);
+
+        $totalMasuk  = TransaksiKeuangan::where('jenis_transaksi', 'masuk')->sum('jumlah');
         $totalKeluar = TransaksiKeuangan::where('jenis_transaksi', 'keluar')->sum('jumlah');
-        $saldo = $totalMasuk - $totalKeluar;
+        $saldo       = $totalMasuk - $totalKeluar;
 
-        return view('transaksi-keuangan.index', compact('transaksi', 'totalMasuk', 'totalKeluar', 'saldo'));
+        $bulan = date('m');
+        $tahun = date('Y');
+        $transaksibulanIni = TransaksiKeuangan::whereMonth('tanggal_transaksi', $bulan)
+                            ->whereYear('tanggal_transaksi', $tahun)
+                            ->count();
+
+        return view('transaksi-keuangan.index', compact(
+            'transaksi', 'totalMasuk', 'totalKeluar', 'saldo', 'transaksibulanIni'
+        ));
     }
 
+    /**
+     * Form tambah transaksi.
+     */
     public function create()
     {
         return view('transaksi-keuangan.create');
     }
 
+    /**
+     * Simpan transaksi baru.
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'jenis_transaksi' => 'required|in:masuk,keluar',
-            'kategori' => 'required|in:sewa,denda,pemeliharaan,pembelian,lainnya',
-            'jumlah' => 'required|numeric|min:0',
-            'deskripsi' => 'required|string',
-            'tanggal_transaksi' => 'required|date',
-            'bukti_transaksi' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048'
+            'nama'               => 'required|string|max:255',
+            'tanggal_transaksi'  => 'required|date',
+            'jenis_transaksi'    => 'required|in:masuk,keluar',
+            'kategori_transaksi' => 'nullable|string|max:255',
+            'jumlah'             => 'required|numeric',
+            'metode_pembayaran'  => 'required|string|max:255',
+            'status'             => 'required|in:berhasil,pending,gagal',
+            'bukti_transaksi'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'keterangan' => 'nullable|string',
         ]);
 
+        $kode_transaksi = 'TRX-' . strtoupper(substr($request->jenis_transaksi, 0, 2)) 
+                        . '-' . now()->format('Ymd') . '-' . rand(1000, 9999);
+
         $data = $request->all();
+        $data['kode_transaksi'] = $kode_transaksi;
 
         if ($request->hasFile('bukti_transaksi')) {
-            $data['bukti_transaksi'] = $request->file('bukti_transaksi')->store('transaksi', 'public');
+            $data['bukti_transaksi'] = $request->file('bukti_transaksi')->store('bukti_transaksi', 'public');
         }
 
         TransaksiKeuangan::create($data);
 
-        Alert::success('Berhasil', 'Transaksi keuangan berhasil ditambahkan');
-        return redirect()->route('transaksi-keuangan.index');
+        return redirect()->route('transaksi-keuangan.index')->with('success', 'Transaksi berhasil ditambahkan.');
     }
 
-    public function show(TransaksiKeuangan $transaksiKeuangan)
+    /**
+     * Detail transaksi.
+     */
+    public function show(TransaksiKeuangan $transaksi_keuangan)
     {
-        $transaksiKeuangan->load('peminjaman.peminjam');
-        return view('transaksi-keuangan.show', compact('transaksiKeuangan'));
+        $transaksi = $transaksi_keuangan;
+        return view('transaksi-keuangan.show', compact('transaksi'));
     }
 
-    public function edit(TransaksiKeuangan $transaksiKeuangan)
+    /**
+     * Form edit transaksi.
+     */
+    public function edit(TransaksiKeuangan $transaksi_keuangan)
     {
-        // Hanya transaksi manual yang bisa diedit (tidak dari peminjaman)
-        if ($transaksiKeuangan->peminjaman_id) {
-            Alert::error('Gagal', 'Transaksi dari peminjaman tidak dapat diedit');
-            return redirect()->route('transaksi-keuangan.index');
-        }
-
-        return view('transaksi-keuangan.edit', compact('transaksiKeuangan'));
+        $transaksi = $transaksi_keuangan;
+        return view('transaksi-keuangan.edit', compact('transaksi'));
     }
 
-    public function update(Request $request, TransaksiKeuangan $transaksiKeuangan)
+    /**
+     * Update transaksi.
+     */
+    public function update(Request $request, TransaksiKeuangan $transaksi)
     {
-        if ($transaksiKeuangan->peminjaman_id) {
-            Alert::error('Gagal', 'Transaksi dari peminjaman tidak dapat diedit');
-            return redirect()->route('transaksi-keuangan.index');
-        }
-
         $request->validate([
-            'jenis_transaksi' => 'required|in:masuk,keluar',
-            'kategori' => 'required|in:sewa,denda,pemeliharaan,pembelian,lainnya',
-            'jumlah' => 'required|numeric|min:0',
-            'deskripsi' => 'required|string',
-            'tanggal_transaksi' => 'required|date',
-            'bukti_transaksi' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048'
+            'nama'               => 'required|string|max:255',
+            'tanggal_transaksi'  => 'required|date',
+            'jenis_transaksi'    => 'required|in:masuk,keluar',
+            'kategori_transaksi' => 'nullable|string|max:255',
+            'jumlah'             => 'required|numeric',
+            'metode_pembayaran'  => 'required|string|max:255',
+            'status'             => 'required|in:berhasil,pending,gagal',
+            'bukti_transaksi'    => 'nullable|file|mimes:jpg,jpeg,png,pdf|max:2048',
+            'keterangan'         => 'nullable|string',
         ]);
 
         $data = $request->all();
 
         if ($request->hasFile('bukti_transaksi')) {
-            if ($transaksiKeuangan->bukti_transaksi) {
-                Storage::disk('public')->delete($transaksiKeuangan->bukti_transaksi);
-            }
-            $data['bukti_transaksi'] = $request->file('bukti_transaksi')->store('transaksi', 'public');
+            $data['bukti_transaksi'] = $request->file('bukti_transaksi')->store('bukti_transaksi', 'public');
         }
 
-        $transaksiKeuangan->update($data);
+        $transaksi->update($data);
 
-        Alert::success('Berhasil', 'Transaksi keuangan berhasil diperbarui');
-        return redirect()->route('transaksi-keuangan.index');
+        return redirect()->route('transaksi-keuangan.index')->with('success', 'Transaksi berhasil diperbarui.');
     }
 
-    public function destroy(TransaksiKeuangan $transaksiKeuangan)
+    /**
+     * Hapus transaksi.
+     */
+    public function destroy(TransaksiKeuangan $transaksi)
     {
-        if ($transaksiKeuangan->peminjaman_id) {
-            Alert::error('Gagal', 'Transaksi dari peminjaman tidak dapat dihapus');
-            return redirect()->route('transaksi-keuangan.index');
-        }
-
-        if ($transaksiKeuangan->bukti_transaksi) {
-            Storage::disk('public')->delete($transaksiKeuangan->bukti_transaksi);
-        }
-
-        $transaksiKeuangan->delete();
-
-        Alert::success('Berhasil', 'Transaksi keuangan berhasil dihapus');
-        return redirect()->route('transaksi-keuangan.index');
+        $transaksi->delete();
+        return redirect()->route('transaksi-keuangan.index')->with('success', 'Transaksi berhasil dihapus.');
     }
 }

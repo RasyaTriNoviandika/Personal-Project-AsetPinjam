@@ -23,6 +23,12 @@
     </div>
 </div>
 
+
+        <div class="mb-3 no-print">
+        <a href="#" onclick="window.print()" class="btn btn-primary">
+        🖨️ Print Laporan
+    </a>
+
 <!-- Stats Cards Row -->
 <div class="row g-4 mb-4">
     <div class="col-xl-3 col-md-6">
@@ -123,19 +129,19 @@
                 <h6 class="m-0 font-weight-bold text-primary">
                     <i class="fas fa-chart-line me-2"></i>Pendapatan 6 Bulan Terakhir
                 </h6>
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                    <div class="dropdown-menu">
-                        <a class="dropdown-item" href="{{ route('export.transaksi') }}">
-                            <i class="fas fa-file-excel me-2"></i>Excel
-                        </a>
-                        <a class="dropdown-item" href="{{ route('laporan.keuangan') }}">
-                            <i class="fas fa-file-pdf me-2"></i>Detail Report
-                        </a>
-                    </div>
-                </div>
+           <div class="dropdown">
+    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+        <i class="fas fa-download me-1"></i>Export
+    </button>
+    <div class="dropdown-menu">
+        <a class="dropdown-item" href="{{ route('laporan.export.keuangan.excel') }}">
+            <i class="fas fa-file-excel me-2"></i>Excel
+        </a>
+        <a class="dropdown-item" href="{{ route('laporan.export.keuangan.pdf') }}">
+            <i class="fas fa-file-pdf me-2"></i>Detail Report
+        </a>
+    </div>
+</div>
             </div>
             <div class="card-body">
                 <div class="chart-container position-relative" style="height: 300px;">
@@ -203,11 +209,12 @@
                             @endif
                         </div>
                         <div class="flex-grow-1 min-width-0">
-                            <h6 class="mb-1 text-truncate">{{ ucfirst($transaksi->kategori) }}</h6>
-                            <p class="mb-1 small text-muted text-truncate">{{ $transaksi->deskripsi }}</p>
-                            <div class="small text-muted">
-                                {{ $transaksi->tanggal_transaksi->format('d M Y') }}
-                            </div>
+                            <h6 class="mb-1 text-truncate">{{ ucfirst($transaksi->kategori_transaksi ?? '-') }}</h6>
+<p class="mb-1 small text-muted text-truncate">{{ $transaksi->keterangan ?? '-' }}</p>
+<div class="small text-muted">
+    {{ \Carbon\Carbon::parse($transaksi->tanggal_transaksi)->format('d M Y') }}
+</div>
+
                         </div>
                         <div class="text-end">
                             <span class="font-weight-bold {{ $transaksi->jenis_transaksi == 'masuk' ? 'text-success' : 'text-danger' }}">
@@ -336,11 +343,15 @@
                             </tbody>
                         </table>
                     </div>
-                    <div class="p-3 bg-light text-center">
-                        <a href="{{ route('barang.index') }}" class="btn btn-info btn-sm">
-                            <i class="fas fa-boxes me-1"></i>Kelola Stok Barang
-                        </a>
-                    </div>
+                   <div class="p-3 bg-light text-center">
+    <a href="{{ route('barang.create') }}" class="btn btn-success btn-sm me-2">
+        <i class="fas fa-plus me-1"></i>Tambah Barang
+    </a>
+    <a href="{{ route('barang.index') }}" class="btn btn-info btn-sm">
+        <i class="fas fa-boxes me-1"></i>Kelola Stok Barang
+    </a>
+</div>
+
                 @else
                     <div class="text-center py-4">
                         <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
@@ -395,67 +406,140 @@
 @endsection
 
 @section('scripts')
+<div class="card mt-4">
+    <div class="card-header">
+        <h5 class="mb-0">Grafik Pendapatan & Pengeluaran 6 Bulan Terakhir</h5>
+    </div>
+    <div class="card-body">
+        <canvas id="pendapatanChart" height="120"></canvas>
+    </div>
+</div>
+
+@push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Revenue Chart
-    const ctx = document.getElementById('pendapatanChart').getContext('2d');
-    const pendapatanData = @json($pendapatanBulanan);
+    const grafikBulanan = @json($grafikBulanan);
 
+    const ctx = document.getElementById('pendapatanChart').getContext('2d');
     new Chart(ctx, {
         type: 'line',
         data: {
-            labels: pendapatanData.map(item => item.bulan),
-            datasets: [{
-                label: 'Pendapatan (Rp)',
-                data: pendapatanData.map(item => item.pendapatan),
-                borderColor: '#4e73df',
-                backgroundColor: 'rgba(78, 115, 223, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#4e73df',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7
-            }]
+            labels: grafikBulanan.map(item => item.bulan),
+            datasets: [
+                {
+                    label: 'Pendapatan',
+                    data: grafikBulanan.map(item => item.pendapatan),
+                    borderColor: 'green',
+                    backgroundColor: 'rgba(0,128,0,0.1)',
+                    fill: true,
+                    tension: 0.3
+                },
+                {
+                    label: 'Pengeluaran',
+                    data: grafikBulanan.map(item => item.pengeluaran),
+                    borderColor: 'red',
+                    backgroundColor: 'rgba(255,0,0,0.1)',
+                    fill: true,
+                    tension: 0.3
+                }
+            ]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-            plugins: { 
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            return 'Rp ' + context.parsed.y.toLocaleString('id-ID'); 
-                        }
-                    }
-                }
+            plugins: {
+                legend: { position: 'top' },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
             },
             scales: {
-                x: { 
-                    grid: { display: false },
-                    ticks: { color: '#858796' }
-                },
-                y: { 
-                    beginAtZero: true,
-                    grid: { borderDash: [3,3], color: '#e3e6f0' },
+                y: {
                     ticks: {
-                        color: '#858796',
-                        callback: function(value) { 
-                            return 'Rp ' + value.toLocaleString('id-ID'); 
+                        callback: function(value) {
+                            return 'Rp ' + value.toLocaleString('id-ID');
                         }
                     }
                 }
             }
         }
     });
+</script>
+@endpush
 
-    // Auto refresh data setiap 5 menit
-    setInterval(function() {
-        window.location.reload();
-    }, 300000);
-});
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Data dari Controller
+    const grafikBulanan = @json($grafikBulanan);
+
+    // Target canvas yang sudah ada di card
+    const ctx = document.getElementById('pendapatanChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: grafikBulanan.map(item => item.bulan),
+            datasets: [
+                {
+                    label: 'Pendapatan (Rp)',
+                    data: grafikBulanan.map(item => item.pendapatan),
+                    borderColor: '#4e73df',
+                    backgroundColor: 'rgba(78, 115, 223, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#4e73df',
+                },
+                {
+                    label: 'Pengeluaran (Rp)',
+                    data: grafikBulanan.map(item => item.pengeluaran),
+                    borderColor: '#e74a3b',
+                    backgroundColor: 'rgba(231, 74, 59, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointRadius: 4,
+                    pointBackgroundColor: '#e74a3b',
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false
+            },
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        usePointStyle: true,
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            let val = context.raw || 0;
+                            return context.dataset.label + ': Rp ' + val.toLocaleString('id-ID');
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    ticks: {
+                        callback: function(value) {
+                            return 'Rp ' + value.toLocaleString('id-ID');
+                        }
+                    }
+                }
+            }
+        }
+    });
 </script>
 @endsection

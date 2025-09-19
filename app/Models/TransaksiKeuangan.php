@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -10,15 +11,19 @@ class TransaksiKeuangan extends Model
     use HasFactory;
 
     protected $table = 'transaksi_keuangans';
-    
+
     protected $fillable = [
-        'kode_transaksi', 
-        'peminjaman_id', 
+        'kode_transaksi',
+        'nama',
+        'peminjaman_id',
+        'user_id',
         'jenis_transaksi',
-        'kategori', 
-        'jumlah', 
-        'deskripsi', 
+        'kategori_transaksi',
+        'jumlah',
+        'keterangan',
         'tanggal_transaksi',
+        'metode_pembayaran',
+        'status',
         'bukti_transaksi'
     ];
 
@@ -35,7 +40,7 @@ class TransaksiKeuangan extends Model
                 $jenis = $model->jenis_transaksi == 'masuk' ? 'IN' : 'OUT';
                 $model->kode_transaksi = 'TRX-' . $jenis . '-' . date('Ymd') . '-' . str_pad(rand(1, 9999), 4, '0', STR_PAD_LEFT);
             }
-            
+
             if (!$model->tanggal_transaksi) {
                 $model->tanggal_transaksi = Carbon::now();
             }
@@ -46,6 +51,11 @@ class TransaksiKeuangan extends Model
     public function peminjaman()
     {
         return $this->belongsTo(Peminjaman::class);
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 
     // Scopes
@@ -61,7 +71,7 @@ class TransaksiKeuangan extends Model
 
     public function scopeByKategori($query, $kategori)
     {
-        return $query->where('kategori', $kategori);
+        return $query->where('kategori_transaksi', $kategori);
     }
 
     public function scopeByDateRange($query, $startDate, $endDate)
@@ -72,7 +82,7 @@ class TransaksiKeuangan extends Model
     public function scopeThisMonth($query)
     {
         return $query->whereMonth('tanggal_transaksi', Carbon::now()->month)
-                    ->whereYear('tanggal_transaksi', Carbon::now()->year);
+                     ->whereYear('tanggal_transaksi', Carbon::now()->year);
     }
 
     public function scopeToday($query)
@@ -89,14 +99,14 @@ class TransaksiKeuangan extends Model
     public function getKategoriBadgeAttribute()
     {
         $badges = [
-            'sewa' => 'bg-primary',
-            'denda' => 'bg-warning',
-            'pemeliharaan' => 'bg-info',
-            'pembelian' => 'bg-secondary',
-            'lainnya' => 'bg-dark'
+            'sewa_barang'   => 'bg-primary',
+            'denda'         => 'bg-warning',
+            'maintenance'   => 'bg-info',
+            'operasional'   => 'bg-secondary',
+            'lainnya'       => 'bg-dark'
         ];
 
-        return $badges[$this->kategori] ?? 'bg-secondary';
+        return $badges[$this->kategori_transaksi] ?? 'bg-secondary';
     }
 
     public function getFormattedJumlahAttribute()
@@ -107,7 +117,8 @@ class TransaksiKeuangan extends Model
 
     public function getFormattedJumlahSimpleAttribute()
     {
-        return 'Rp ' . number_format($this->jumlah, 0, ',', '.');
+        $prefix = $this->jenis_transaksi === 'masuk' ? '' : '-';
+        return $prefix . 'Rp ' . number_format($this->jumlah, 0, ',', '.');
     }
 
     public function getIsFromPeminjamanAttribute()
