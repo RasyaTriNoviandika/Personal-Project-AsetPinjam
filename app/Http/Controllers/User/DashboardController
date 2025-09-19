@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Http\Controllers\User;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+use App\Models\Peminjaman;
+use App\Models\Barang;
+use App\Models\Peminjam;
+use Carbon\Carbon;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        $userId = auth()->id();
+        
+        // Statistics
+        $stats = [
+            'total_peminjaman' => Peminjaman::where('user_id', $userId)->count(),
+            'sedang_dipinjam' => Peminjaman::where('user_id', $userId)
+                                          ->where('status', 'dipinjam')->count(),
+            'menunggu_persetujuan' => Peminjaman::where('user_id', $userId)
+                                               ->where('status', 'pending')->count(),
+            'sudah_dikembalikan' => Peminjaman::where('user_id', $userId)
+                                             ->where('status', 'dikembalikan')->count(),
+        ];
+        
+        // Recent borrowings
+        $recentPeminjaman = Peminjaman::where('user_id', $userId)
+            ->with(['peminjam', 'detailPeminjaman.barang'])
+            ->orderBy('created_at', 'desc')
+            ->limit(5)
+            ->get();
+        
+        // Active borrowings (currently borrowed)
+        $activePeminjaman = Peminjaman::where('user_id', $userId)
+            ->where('status', 'dipinjam')
+            ->with(['peminjam', 'detailPeminjaman.barang'])
+            ->orderBy('tanggal_kembali_rencana', 'asc')
+            ->get();
+        
+        // Overdue borrowings
+        $overduePeminjaman = Peminjaman::where('user_id', $userId)
+            ->where('status', 'dipinjam')
+            ->where('tanggal_kembali_rencana', '<', now())
+            ->with(['peminjam', 'detailPeminjaman.barang'])
+            ->get();
+        
+        // Available items for quick borrowing
+        $availableBarang = Barang::where('stok_tersedia', '>', 0)
+            ->with('kategori')
+            ->orderBy('nama_barang')
+            ->limit(8)
+            ->get();
+        
+        // User's borrowers
+        $myPeminjam = Peminjam::where('user_id', $userId)->count();
+        
+        // Monthly borrowing chart data (last 6 months)
+        $monthlyData = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $month = Carbon::now()->subMonths($i);
+            $count = Peminjaman::where('user_id', $userId)
+                              ->whereYear('tanggal_pinjam', $month->year)
+                              ->whereMonth('tanggal_pinjam', $month->month)
+                              ->count();
+            
+            $monthlyData[] = [
+                'month' => $month->format('M Y'),
+                'count' => $count
+            ];
+        }
+        
+        return view('user.dashboard', compact(
+            'stats',
+            'recentPeminjaman',
+            'activePeminjaman', 
+            'overduePeminjaman',
+            'availableBarang',
+            'myPeminjam',
+            'monthlyData'
+        ));
+    }
+}

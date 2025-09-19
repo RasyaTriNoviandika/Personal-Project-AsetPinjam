@@ -1,10 +1,6 @@
 @extends('layouts.user')
 
-@section('title', 'Riwayat Peminjaman Saya')
-
-@section('breadcrumb')
-<li class="breadcrumb-item active">Riwayat Peminjaman</li>
-@endsection
+@section('title', 'Cari Barang - User Panel')
 
 @section('content')
 <div class="container-fluid">
@@ -12,408 +8,256 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <h1 class="h3 mb-1 text-primary">
-                <i class="fas fa-history me-2"></i> Riwayat Peminjaman Saya
+                <i class="fas fa-search me-2"></i> Cari Barang
             </h1>
-            <p class="text-muted">Kelola dan pantau semua peminjaman Anda</p>
+            <p class="text-muted">Temukan barang yang tersedia untuk dipinjam</p>
         </div>
         <div class="col-md-4 text-end">
-            <a href="{{ route('user.peminjaman.create') }}" class="btn btn-success btn-lg">
-                <i class="fas fa-plus-circle me-2"></i> Ajukan Peminjaman Baru
+            <a href="{{ route('user.peminjaman.create') }}" class="btn btn-success">
+                <i class="fas fa-plus-circle me-2"></i> Ajukan Peminjaman
             </a>
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-primary shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
-                                Total Peminjaman
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ $peminjamans->count() }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-warning shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Sedang Dipinjam
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ $peminjamans->where('status', 'dipinjam')->count() }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-hourglass-half fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Dikembalikan
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                {{ $peminjamans->where('status', 'dikembalikan')->count() }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-xl-3 col-md-6 mb-4">
-            <div class="card border-left-info shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Total Biaya
-                            </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                Rp {{ number_format($peminjamans->sum('total_bayar'), 0, ',', '.') }}
-                            </div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters and Search -->
+    <!-- Search and Filter -->
     <div class="card shadow mb-4">
         <div class="card-header py-3">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h6 class="m-0 font-weight-bold text-primary">Filter & Pencarian</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-filter me-2"></i>Filter & Pencarian
+                    </h6>
                 </div>
                 <div class="col-md-6 text-end">
-                    <button class="btn btn-sm btn-outline-primary" id="toggleFilters">
-                        <i class="fas fa-filter me-1"></i> Filter
-                    </button>
+                    <small class="text-muted">{{ $barang->total() }} barang ditemukan</small>
                 </div>
             </div>
         </div>
-        <div class="card-body" id="filterSection" style="display: none;">
-            <form method="GET" action="{{ route('user.peminjamn') }}">
+        <div class="card-body">
+            <form method="GET" action="{{ route('user.barang.index') }}">
                 <div class="row">
-                    <div class="col-md-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select name="status" id="status" class="form-select">
-                            <option value="">Semua Status</option>
-                            <option value="pending" {{ request('status') == 'pending' ? 'selected' : '' }}>Pending</option>
-                            <option value="dipinjam" {{ request('status') == 'dipinjam' ? 'selected' : '' }}>Dipinjam</option>
-                            <option value="dikembalikan" {{ request('status') == 'dikembalikan' ? 'selected' : '' }}>Dikembalikan</option>
-                        </select>
+                    <div class="col-md-4">
+                        <div class="mb-3">
+                            <label for="search" class="form-label">Kata Kunci</label>
+                            <input type="text" 
+                                   name="search" 
+                                   id="search" 
+                                   class="form-control" 
+                                   placeholder="Nama barang, merek, deskripsi..." 
+                                   value="{{ request('search') }}">
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label for="tanggal_dari" class="form-label">Tanggal Dari</label>
-                        <input type="date" name="tanggal_dari" id="tanggal_dari" class="form-control" value="{{ request('tanggal_dari') }}">
+                        <div class="mb-3">
+                            <label for="kategori" class="form-label">Kategori</label>
+                            <select name="kategori" id="kategori" class="form-select">
+                                <option value="">Semua Kategori</option>
+                                @foreach($kategoris as $kategori)
+                                    <option value="{{ $kategori->id }}" {{ request('kategori') == $kategori->id ? 'selected' : '' }}>
+                                        {{ $kategori->nama }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="mb-3">
+                            <label for="sort" class="form-label">Urutkan</label>
+                            <select name="sort" id="sort" class="form-select">
+                                <option value="nama_barang" {{ request('sort') == 'nama_barang' ? 'selected' : '' }}>Nama</option>
+                                <option value="merek" {{ request('sort') == 'merek' ? 'selected' : '' }}>Merek</option>
+                                <option value="harga_sewa_per_hari" {{ request('sort') == 'harga_sewa_per_hari' ? 'selected' : '' }}>Harga</option>
+                                <option value="stok_tersedia" {{ request('sort') == 'stok_tersedia' ? 'selected' : '' }}>Stok</option>
+                                <option value="created_at" {{ request('sort') == 'created_at' ? 'selected' : '' }}>Terbaru</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="col-md-3">
-                        <label for="tanggal_sampai" class="form-label">Tanggal Sampai</label>
-                        <input type="date" name="tanggal_sampai" id="tanggal_sampai" class="form-control" value="{{ request('tanggal_sampai') }}">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="search" class="form-label">Cari Barang</label>
-                        <input type="text" name="search" id="search" class="form-control" placeholder="Nama barang..." value="{{ request('search') }}">
-                    </div>
-                </div>
-                <div class="row mt-3">
-                    <div class="col-md-12">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search me-1"></i> Filter
-                        </button>
-                        <a href="{{ route('user.peminjaman.index') }}" class="btn btn-secondary">
-                            <i class="fas fa-times me-1"></i> Reset
-                        </a>
+                        <div class="mb-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i> Cari
+                                </button>
+                                <a href="{{ route('user.barang.index') }}" class="btn btn-secondary">
+                                    <i class="fas fa-refresh me-1"></i> Reset
+                                </a>
+                                <div class="form-check align-self-center ms-2">
+                                    <input type="checkbox" 
+                                           name="tersedia" 
+                                           value="1" 
+                                           class="form-check-input" 
+                                           id="tersedia" 
+                                           {{ request('tersedia') ? 'checked' : '' }}>
+                                    <label class="form-check-label" for="tersedia">
+                                        <small>Hanya yang tersedia</small>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Main Table -->
-    <div class="card shadow">
-        <div class="card-header py-3">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h6 class="m-0 font-weight-bold text-primary">
-                        <i class="fas fa-list me-2"></i>Daftar Peminjaman
-                    </h6>
+    <!-- Items Grid -->
+    <div class="row">
+        @forelse($barang as $item)
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 shadow-sm barang-card">
+                <div class="position-relative">
+                    @if($item->gambar)
+                        <img src="{{ asset('storage/' . $item->gambar) }}" 
+                             class="card-img-top" 
+                             style="height: 200px; object-fit: cover;">
+                    @else
+                        <div class="card-img-top bg-light d-flex align-items-center justify-content-center" 
+                             style="height: 200px;">
+                            <i class="fas fa-box fa-3x text-muted"></i>
+                        </div>
+                    @endif
+                    
+                    <!-- Stock Badge -->
+                    @if($item->stok_tersedia > 0)
+                        <span class="position-absolute top-0 end-0 badge bg-success m-2">
+                            {{ $item->stok_tersedia }} tersedia
+                        </span>
+                    @else
+                        <span class="position-absolute top-0 end-0 badge bg-danger m-2">
+                            Habis
+                        </span>
+                    @endif
+                    
+                    <!-- Category Badge -->
+                    @if($item->kategori)
+                        <span class="position-absolute top-0 start-0 badge bg-primary m-2">
+                            {{ $item->kategori->nama }}
+                        </span>
+                    @endif
                 </div>
-                <div class="col-md-6 text-end">
-                    <div class="btn-group" role="group">
-                        <button type="button" class="btn btn-sm btn-outline-info" onclick="refreshTable()">
-                            <i class="fas fa-sync-alt"></i> Refresh
-                        </button>
+                
+                <div class="card-body d-flex flex-column">
+                    <h6 class="card-title text-primary mb-2">{{ $item->nama_barang }}</h6>
+                    
+                    @if($item->merek)
+                        <p class="card-text text-muted small mb-2">
+                            <i class="fas fa-tag me-1"></i>{{ $item->merek }}
+                        </p>
+                    @endif
+                    
+                    @if($item->deskripsi)
+                        <p class="card-text small text-muted mb-3" style="max-height: 60px; overflow: hidden;">
+                            {{ Str::limit($item->deskripsi, 80) }}
+                        </p>
+                    @endif
+                    
+                    <!-- Price -->
+                    @if($item->harga_sewa_per_hari)
+                        <div class="mb-3">
+                            <span class="h6 text-success mb-0">
+                                Rp {{ number_format($item->harga_sewa_per_hari, 0, ',', '.') }}
+                            </span>
+                            <small class="text-muted">/hari</small>
+                        </div>
+                    @endif
+                    
+                    <div class="mt-auto">
+                        <div class="d-grid gap-2">
+                            <a href="{{ route('user.barang.show', $item->id) }}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i> Detail
+                            </a>
+                            @if($item->stok_tersedia > 0)
+                                <a href="{{ route('user.peminjaman.create') }}?barang={{ $item->id }}" class="btn btn-success btn-sm">
+                                    <i class="fas fa-plus me-1"></i> Pinjam
+                                </a>
+                            @else
+                                <button class="btn btn-secondary btn-sm" disabled>
+                                    <i class="fas fa-times me-1"></i> Tidak Tersedia
+                                </button>
+                            @endif
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>#</th>
-                            <th>Kode Peminjaman</th>
-                            <th>Barang</th>
-                            <th>Tanggal Pinjam</th>
-                            <th>Rencana Kembali</th>
-                            <th>Tanggal Kembali</th>
-                            <th>Status</th>
-                            <th>Total Biaya</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($peminjamans as $peminjaman)
-                            <tr class="{{ $peminjaman->status == 'dipinjam' && $peminjaman->tanggal_kembali_rencana->isPast() ? 'table-warning' : '' }}">
-                                <td>{{ $loop->iteration }}</td>
-                                <td>
-                                    <strong class="text-primary">{{ $peminjaman->kode_peminjaman ?? 'PM-' . str_pad($peminjaman->id, 4, '0', STR_PAD_LEFT) }}</strong>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <div class="me-3">
-                                            @if($peminjaman->barang->gambar)
-                                                <img src="{{ asset('storage/' . $peminjaman->barang->gambar) }}" 
-                                                     class="rounded" width="50" height="50" style="object-fit: cover;">
-                                            @else
-                                                <div class="bg-light rounded d-flex align-items-center justify-content-center" 
-                                                     style="width: 50px; height: 50px;">
-                                                    <i class="fas fa-box text-muted"></i>
-                                                </div>
-                                            @endif
-                                        </div>
-                                        <div>
-                                            <strong>{{ $peminjaman->barang->nama_barang }}</strong>
-                                            <br><small class="text-muted">{{ $peminjaman->barang->kategori->nama ?? '-' }}</small>
-                                            @if($peminjaman->jumlah > 1)
-                                                <br><span class="badge bg-info">{{ $peminjaman->jumlah }} unit</span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ $peminjaman->tanggal_pinjam->format('d/m/Y') }}</small>
-                                    <br><strong>{{ $peminjaman->tanggal_pinjam->format('d M Y') }}</strong>
-                                </td>
-                                <td>
-                                    <small class="text-muted">{{ $peminjaman->tanggal_kembali_rencana->format('d/m/Y') }}</small>
-                                    <br><strong>{{ $peminjaman->tanggal_kembali_rencana->format('d M Y') }}</strong>
-                                    @if($peminjaman->status == 'dipinjam' && $peminjaman->tanggal_kembali_rencana->isPast())
-                                        <br><span class="badge bg-danger">Terlambat {{ $peminjaman->tanggal_kembali_rencana->diffForHumans() }}</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($peminjaman->tanggal_kembali)
-                                        <small class="text-muted">{{ $peminjaman->tanggal_kembali->format('d/m/Y') }}</small>
-                                        <br><strong>{{ $peminjaman->tanggal_kembali->format('d M Y') }}</strong>
-                                        @if($peminjaman->tanggal_kembali > $peminjaman->tanggal_kembali_rencana)
-                                            <br><span class="badge bg-warning">Terlambat</span>
-                                        @endif
-                                    @else
-                                        <span class="text-muted">Belum dikembalikan</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    @if($peminjaman->status == 'pending')
-                                        <span class="badge bg-info">Menunggu Persetujuan</span>
-                                    @elseif($peminjaman->status == 'dipinjam')
-                                        <span class="badge bg-warning text-dark">Sedang Dipinjam</span>
-                                    @elseif($peminjaman->status == 'dikembalikan')
-                                        <span class="badge bg-success">Sudah Dikembalikan</span>
-                                    @elseif($peminjaman->status == 'ditolak')
-                                        <span class="badge bg-danger">Ditolak</span>
-                                    @else
-                                        <span class="badge bg-secondary">{{ ucfirst($peminjaman->status) }}</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <strong class="text-success">Rp {{ number_format($peminjaman->total_bayar ?? 0, 0, ',', '.') }}</strong>
-                                    @if($peminjaman->denda > 0)
-                                        <br><small class="text-danger">Denda: Rp {{ number_format($peminjaman->denda, 0, ',', '.') }}</small>
-                                    @endif
-                                </td>
-                                <td>
-                                    <div class="btn-group" role="group">
-                                        <a href="{{ route('peminjaman.show', $peminjaman->id) }}" 
-                                           class="btn btn-sm btn-info" title="Detail">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-
-                                        @if($peminjaman->status == 'dipinjam')
-                                            <button type="button" class="btn btn-sm btn-success" 
-                                                    onclick="confirmReturn({{ $peminjaman->id }})" 
-                                                    title="Kembalikan">
-                                                <i class="fas fa-undo"></i>
-                                            </button>
-                                        @endif
-
-                                        @if($peminjaman->status == 'dikembalikan')
-                                            <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                    onclick="printReceipt({{ $peminjaman->id }})" 
-                                                    title="Cetak Kwitansi">
-                                                <i class="fas fa-print"></i>
-                                            </button>
-                                        @endif
-                                    </div>
-
-                                    @if($peminjaman->status == 'dipinjam')
-                                        <form id="returnForm{{ $peminjaman->id }}" 
-                                              action="{{ route('user.peminjaman.kembalikan', $peminjaman->id) }}" 
-                                              method="POST" class="d-none">
-                                            @csrf
-                                        </form>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="9" class="text-center py-5">
-                                    <div class="mb-3">
-                                        <i class="fas fa-inbox fa-3x text-muted"></i>
-                                    </div>
-                                    <h5 class="text-muted">Belum ada peminjaman</h5>
-                                    <p class="text-muted">Mulai dengan mengajukan peminjaman barang pertama Anda</p>
-                                    <a href="{{ route('user.peminjaman.create') }}" class="btn btn-primary">
-                                        <i class="fas fa-plus me-2"></i>Ajukan Peminjaman
-                                    </a>
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-
-            {{-- Pagination --}}
-            @if($peminjamans->hasPages())
-                <div class="d-flex justify-content-center mt-4">
-                    {{ $peminjamans->links() }}
+        @empty
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">Barang tidak ditemukan</h4>
+                    <p class="text-muted">Coba ubah kata kunci pencarian atau filter yang digunakan</p>
+                    <a href="{{ route('user.barang.index') }}" class="btn btn-primary">
+                        <i class="fas fa-refresh me-2"></i>Reset Pencarian
+                    </a>
                 </div>
-            @endif
+            </div>
         </div>
+        @endforelse
     </div>
+
+    <!-- Pagination -->
+    @if($barang->hasPages())
+        <div class="d-flex justify-content-center mt-4">
+            {{ $barang->withQueryString()->links() }}
+        </div>
+    @endif
 </div>
 
 <style>
-.text-xs {
-    font-size: 0.7rem;
+.barang-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+}
+
+.barang-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15) !important;
+}
+
+.card-img-top {
+    transition: all 0.3s ease;
+}
+
+.barang-card:hover .card-img-top {
+    transform: scale(1.05);
 }
 
 .font-weight-bold {
     font-weight: 700;
 }
-
-.border-left-primary {
-    border-left: 0.25rem solid var(--primary-color) !important;
-}
-
-.border-left-success {
-    border-left: 0.25rem solid var(--success-color) !important;
-}
-
-.border-left-info {
-    border-left: 0.25rem solid var(--info-color) !important;
-}
-
-.border-left-warning {
-    border-left: 0.25rem solid var(--warning-color) !important;
-}
-
-.table-warning {
-    background-color: rgba(255, 193, 7, 0.1);
-}
-
-.btn-group .btn {
-    margin-right: 2px;
-}
-
-.btn-group .btn:last-child {
-    margin-right: 0;
-}
 </style>
 @endsection
 
 @push('scripts')
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Toggle filter section
-    document.getElementById('toggleFilters').addEventListener('click', function() {
-        const filterSection = document.getElementById('filterSection');
-        const isVisible = filterSection.style.display !== 'none';
-        
-        filterSection.style.display = isVisible ? 'none' : 'block';
-        this.innerHTML = isVisible 
-            ? '<i class="fas fa-filter me-1"></i> Filter' 
-            : '<i class="fas fa-times me-1"></i> Tutup Filter';
+    // Quick search functionality
+    const searchInput = document.getElementById('search');
+    let searchTimeout;
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (this.value.length >= 3 || this.value.length === 0) {
+                document.querySelector('form').submit();
+            }
+        }, 500);
     });
-
-    // Show filters if there are active filters
-    @if(request()->hasAny(['status', 'tanggal_dari', 'tanggal_sampai', 'search']))
-        document.getElementById('filterSection').style.display = 'block';
-        document.getElementById('toggleFilters').innerHTML = '<i class="fas fa-times me-1"></i> Tutup Filter';
-    @endif
+    
+    // Auto submit on filter change
+    document.getElementById('kategori').addEventListener('change', function() {
+        document.querySelector('form').submit();
+    });
+    
+    document.getElementById('sort').addEventListener('change', function() {
+        document.querySelector('form').submit();
+    });
+    
+    document.getElementById('tersedia').addEventListener('change', function() {
+        document.querySelector('form').submit();
+    });
 });
-
-function refreshTable() {
-    window.location.reload();
-}
-
-function confirmReturn(peminjamanId) {
-    Swal.fire({
-        title: 'Konfirmasi Pengembalian',
-        text: 'Apakah Anda yakin ingin mengembalikan barang ini?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#28a745',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: '<i class="fas fa-check me-2"></i>Ya, Kembalikan',
-        cancelButtonText: '<i class="fas fa-times me-2"></i>Batal',
-        customClass: {
-            confirmButton: 'btn btn-success',
-            cancelButton: 'btn btn-secondary'
-        }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            const form = document.getElementById('returnForm' + peminjamanId);
-            form.submit();
-        }
-    });
-}
-
-function printReceipt(peminjamanId) {
-    // Open receipt in new window
-    window.open(`{{ url('/peminjaman') }}/${peminjamanId}/receipt`, '_blank', 'width=800,height=600');
-}
 </script>
 @endpush
